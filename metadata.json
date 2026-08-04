@@ -1,0 +1,6 @@
+{
+  "name": "Acompañamiento Poscosecha",
+  "description": "Informe de priorización de acompañamientos de poscosecha integrando datos de Google Sheets para supervisores y formadores.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

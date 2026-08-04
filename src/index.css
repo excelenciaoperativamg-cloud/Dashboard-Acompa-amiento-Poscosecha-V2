@@ -1,0 +1,51 @@
+@import "tailwindcss";
+
+@media print {
+  /* Ocultar la app general cuando se imprime desde la modal */
+  body > div:not(#printable-root) {
+    display: none !important;
+  }
+
+  body {
+    background-color: white !important;
+    color: black !important;
+    font-size: 10pt !important;
+  }
+
+  /* Ocultar controles de no-print */
+  .no-print {
+    display: none !important;
+  }
+
+  /* Área imprimible */
+  #printable-area, #printable-area * {
+    visibility: visible;
+  }
+
+  #printable-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    page-break-inside: auto;
+  }
+
+  tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+
+  @page {
+    size: landscape;
+    margin: 10mm;
+  }
+}
