@@ -13,7 +13,7 @@ import { FilterBar } from './components/FilterBar';
 import { ConsolidadoTable } from './components/ConsolidadoTable';
 import { DecisionMatrixSection } from './components/DecisionMatrixSection';
 import { GestionBajosIndicadores } from './components/GestionBajosIndicadores';
-import { MOCK_BAJOS_INDICADORES } from './data/mockData';
+import { MOCK_RENDIMIENTO, MOCK_CONSOLIDADO_CALIDAD, MOCK_MATRICULAS, MOCK_BAJOS_INDICADORES } from './data/mockData';
 import { AlertTriangle, RefreshCw, Sparkles, BookOpen } from 'lucide-react';
 
 export default function App() {
@@ -43,11 +43,15 @@ export default function App() {
     setIsRefreshing(true);
     try {
       const res = await fetch(`/api/sheets/data?spreadsheetId=${encodeURIComponent(targetId)}`);
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
       const data: SheetsDataResponse = await res.json();
       setSheetsData(data);
       if (data.semanasDisponibles && data.semanasDisponibles.length > 0) {
         setSemanaSeleccionada(data.semanasDisponibles[0]);
       }
+      setLaboresInicializadas(false);
     } catch (err) {
       console.error('Error al consultar /api/sheets/data:', err);
     } finally {
@@ -60,20 +64,23 @@ export default function App() {
     fetchSheetsData(spreadsheetId);
   }, [spreadsheetId]);
 
-  // Compute active datasets (server data overridden by custom uploads if any)
+  // Compute active datasets (server data overridden by custom uploads if any, with local mock fallback)
   const activeRendimientoRaw = useMemo(() => {
     if (customRendimiento && customRendimiento.length > 0) return customRendimiento;
-    return sheetsData?.rendimientoRaw || [];
+    if (sheetsData?.rendimientoRaw && sheetsData.rendimientoRaw.length > 0) return sheetsData.rendimientoRaw;
+    return MOCK_RENDIMIENTO;
   }, [customRendimiento, sheetsData]);
 
   const activeConsolidadoRaw = useMemo(() => {
     if (customConsolidado && customConsolidado.length > 0) return customConsolidado;
-    return sheetsData?.consolidadoRaw || [];
+    if (sheetsData?.consolidadoRaw && sheetsData.consolidadoRaw.length > 0) return sheetsData.consolidadoRaw;
+    return MOCK_CONSOLIDADO_CALIDAD;
   }, [customConsolidado, sheetsData]);
 
   const activeMatriculasRaw = useMemo(() => {
     if (customMatriculas && customMatriculas.length > 0) return customMatriculas;
-    return sheetsData?.matriculasRaw || [];
+    if (sheetsData?.matriculasRaw && sheetsData.matriculasRaw.length > 0) return sheetsData.matriculasRaw;
+    return MOCK_MATRICULAS;
   }, [customMatriculas, sheetsData]);
 
   const activeBajosIndicadoresRaw = useMemo(() => {
@@ -123,13 +130,15 @@ export default function App() {
     return Array.from(setAreas).sort();
   }, [activeMatriculasRaw]);
 
-  // Auto-inicializar laboresSeleccionadas con todas las labores disponibles
+  // Auto-inicializar laboresSeleccionadas con todas las labores disponibles cuando cambien o si está vacío
   useEffect(() => {
-    if (laboresDisponibles.length > 0 && !laboresInicializadas) {
-      setLaboresSeleccionadas(laboresDisponibles);
-      setLaboresInicializadas(true);
+    if (laboresDisponibles.length > 0) {
+      if (!laboresInicializadas || laboresSeleccionadas.length === 0) {
+        setLaboresSeleccionadas(laboresDisponibles);
+        setLaboresInicializadas(true);
+      }
     }
-  }, [laboresDisponibles, laboresInicializadas]);
+  }, [laboresDisponibles, laboresInicializadas, laboresSeleccionadas.length]);
 
   // Filtrado final según Semana, Labor, Matrícula, Área de Matrícula, Estado y Búsqueda
   const filteredPrioritizationData = useMemo(() => {
@@ -140,7 +149,7 @@ export default function App() {
       }
 
       // 2. Filtro por Labor (múltiple)
-      if (laboresSeleccionadas.length < laboresDisponibles.length) {
+      if (laboresSeleccionadas.length > 0 && laboresSeleccionadas.length < laboresDisponibles.length) {
         if (!laboresSeleccionadas.includes(item.labor.trim())) {
           return false;
         }

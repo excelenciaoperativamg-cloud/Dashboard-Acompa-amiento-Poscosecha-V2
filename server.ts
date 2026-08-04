@@ -22,6 +22,17 @@ const PORT = 3000;
 
 app.use(express.json());
 
+// Enable CORS
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  next();
+});
+
 const SPREADSHEET_ID_DEFAULT = '1kDg5T5Nv9UqHPRDNw2tgLNrrqMIkcjb-_aIFnE5rDV4';
 
 /**
@@ -353,12 +364,12 @@ function mapBajosIndicadoresRows(rows: any[]): RegistroBajoIndicador[] {
 }
 
 // API Health Check
-app.get('/api/health', (req, res) => {
+app.get(['/api/health', '/health'], (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
 // Endpoint principal para consultar y consolidar datos de Google Sheets
-app.get('/api/sheets/data', (async (req, res) => {
+app.get(['/api/sheets/data', '/sheets/data'], (async (req, res) => {
   const spreadsheetId = (req.query.spreadsheetId as string) || SPREADSHEET_ID_DEFAULT;
 
   try {
