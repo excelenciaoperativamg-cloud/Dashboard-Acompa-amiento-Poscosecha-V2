@@ -1,6 +1,3 @@
-import express from 'express';
-import path from 'path';
-import { createServer as createViteServer } from 'vite';
 import Papa from 'papaparse';
 import {
   EvaluacionRendimiento,
@@ -8,37 +5,16 @@ import {
   PersonaMatricula,
   RegistroBajoIndicador,
   SheetsDataResponse
-} from './src/types';
-import { consolidarPriorizacion } from './src/utils/calculations';
+} from '../types';
+import { consolidarPriorizacion } from './calculations';
 import {
   MOCK_RENDIMIENTO,
   MOCK_CONSOLIDADO_CALIDAD,
   MOCK_MATRICULAS,
   MOCK_BAJOS_INDICADORES
-} from './src/data/mockData';
+} from '../data/mockData';
 
-const app = express();
-const PORT = 3000;
-
-app.use(express.json());
-
-// Enable CORS
-app.use((req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-  next();
-});
-
-const SPREADSHEET_ID_DEFAULT = '1kDg5T5Nv9UqHPRDNw2tgLNrrqMIkcjb-_aIFnE5rDV4';
-
-/**
- * Normaliza nombres de encabezados
- */
-function cleanHeader(header: string): string {
+export function cleanHeader(header: string): string {
   return header
     .trim()
     .toLowerCase()
@@ -46,14 +22,10 @@ function cleanHeader(header: string): string {
     .replace(/[\u0300-\u036f]/g, '');
 }
 
-/**
- * Convierte texto numérico con formato (ej: "92.5%", "450,0", "1.200") a number JS
- */
-function parseNumber(val: any, defaultVal = 0): number {
+export function parseNumber(val: any, defaultVal = 0): number {
   if (val === undefined || val === null || val === '') return defaultVal;
   if (typeof val === 'number') return val;
   let str = String(val).replace('%', '').trim();
-  // Manejo de comas decimales europeas / latinoamericanas
   if (str.includes(',') && !str.includes('.')) {
     str = str.replace(',', '.');
   } else if (str.includes('.') && str.includes(',')) {
@@ -63,10 +35,7 @@ function parseNumber(val: any, defaultVal = 0): number {
   return isNaN(parsed) ? defaultVal : parsed;
 }
 
-/**
- * Obtiene y procesa una hoja de Google Sheets vía exportación pública CSV gviz
- */
-async function fetchSheetCSV(spreadsheetId: string, sheetName: string): Promise<any[]> {
+export async function fetchSheetCSV(spreadsheetId: string, sheetName: string): Promise<any[]> {
   const url = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}`;
   const response = await fetch(url);
   if (!response.ok) {
@@ -77,10 +46,7 @@ async function fetchSheetCSV(spreadsheetId: string, sheetName: string): Promise<
   return parsed.data || [];
 }
 
-/**
- * Mapea las filas CSV de 'Rendimiento' a EvaluacionRendimiento[]
- */
-function mapRendimientoRows(rows: any[]): EvaluacionRendimiento[] {
+export function mapRendimientoRows(rows: any[]): EvaluacionRendimiento[] {
   return rows.map((row) => {
     const keys = Object.keys(row);
 
@@ -155,10 +121,7 @@ function mapRendimientoRows(rows: any[]): EvaluacionRendimiento[] {
   }).filter(item => item.codigo !== '' || item.nombre !== '');
 }
 
-/**
- * Mapea las filas CSV de 'Consolidado' a EvaluacionCalidad[]
- */
-function mapConsolidadoRows(rows: any[]): EvaluacionCalidad[] {
+export function mapConsolidadoRows(rows: any[]): EvaluacionCalidad[] {
   return rows.map((row) => {
     const keys = Object.keys(row);
 
@@ -194,11 +157,9 @@ function mapConsolidadoRows(rows: any[]): EvaluacionCalidad[] {
     const rawNombre = getValName() || '';
     const rawLabor = getValGeneric(['labor', 'tarea', 'actividad']) || 'Calidad Poscosecha';
 
-    // Búsqueda inteligente de columnas de Calidad, Proceso y Producto
     const findMetricKey = (metricName: 'proceso' | 'producto' | 'calidad'): string | undefined => {
       const cleanKeys = keys.map(k => ({ original: k, clean: cleanHeader(k) }));
 
-      // 1. Patrones exactos con porcentaje
       const exactPatterns = [
         `% ${metricName}`,
         `%${metricName}`,
@@ -215,7 +176,6 @@ function mapConsolidadoRows(rows: any[]): EvaluacionCalidad[] {
         if (match) return match.original;
       }
 
-      // 2. Encabezado con % o porcentaje y el nombre de la métrica
       const pctMatch = cleanKeys.find(ck => {
         if (ck.clean.includes('meta') || ck.clean.includes('objetivo') || ck.clean.startsWith('id_') || ck.clean === 'llave') return false;
         const hasPct = ck.clean.includes('%') || ck.clean.includes('porcentaje') || ck.clean.includes('pct');
@@ -223,14 +183,12 @@ function mapConsolidadoRows(rows: any[]): EvaluacionCalidad[] {
       });
       if (pctMatch) return pctMatch.original;
 
-      // 3. Palabra exacta (ej: "proceso", "producto", "calidad") descartando columnas de texto conocidas
       const simpleMatch = cleanKeys.find(ck => {
         if (ck.clean.includes('meta') || ck.clean.includes('objetivo') || ck.clean.startsWith('id_') || ck.clean === 'llave' || ck.clean === 'registro' || ck.clean === 'labor' || ck.clean === 'tipo' || ck.clean === 'nombre' || ck.clean === 'codigo') return false;
         return ck.clean === metricName;
       });
       if (simpleMatch) return simpleMatch.original;
 
-      // 4. Último recurso: contiene el nombre de la métrica excluyendo columnas de texto no numéricas
       const lastResort = cleanKeys.find(ck => {
         if (ck.clean.includes('meta') || ck.clean.includes('objetivo') || ck.clean.startsWith('id_') || ck.clean === 'llave' || ck.clean.includes('registro') || ck.clean.includes('labor') || ck.clean.includes('tipo') || ck.clean.includes('nombre') || ck.clean.includes('codigo') || ck.clean.includes('fecha') || ck.clean.includes('dia') || ck.clean.includes('ingreso') || ck.clean.includes('semana')) return false;
         return ck.clean.includes(metricName);
@@ -294,10 +252,7 @@ function mapConsolidadoRows(rows: any[]): EvaluacionCalidad[] {
   }).filter(item => item.codigo !== '' || item.nombre !== '');
 }
 
-/**
- * Mapea las filas CSV de 'Matrículas' a PersonaMatricula[]
- */
-function mapMatriculasRows(rows: any[]): PersonaMatricula[] {
+export function mapMatriculasRows(rows: any[]): PersonaMatricula[] {
   return rows.map((row) => {
     const keys = Object.keys(row);
     const getVal = (possibleNames: string[]) => {
@@ -322,10 +277,7 @@ function mapMatriculasRows(rows: any[]): PersonaMatricula[] {
   }).filter(item => item.codigo !== '');
 }
 
-/**
- * Mapea las filas de 'Bajos_Indicadores' a RegistroBajoIndicador[]
- */
-function mapBajosIndicadoresRows(rows: any[]): RegistroBajoIndicador[] {
+export function mapBajosIndicadoresRows(rows: any[]): RegistroBajoIndicador[] {
   return rows.map((row, idx) => {
     const keys = Object.keys(row);
     const getVal = (possibleNames: string[]) => {
@@ -363,130 +315,61 @@ function mapBajosIndicadoresRows(rows: any[]): RegistroBajoIndicador[] {
   }).filter(item => item.nombre !== '' || item.codigo !== '');
 }
 
-// API Health Check
-app.get(['/api/health', '/health'], (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
+export async function fetchSheetsDataFromGoogle(spreadsheetId: string): Promise<SheetsDataResponse> {
+  const [rawRendimiento, rawConsolidado, rawMatriculas, rawBajosIndicadores] = await Promise.all([
+    fetchSheetCSV(spreadsheetId, 'Rendimiento').catch(() => null),
+    fetchSheetCSV(spreadsheetId, 'Consolidado').catch(() => null),
+    fetchSheetCSV(spreadsheetId, 'Matrículas').catch(() => fetchSheetCSV(spreadsheetId, 'Matriculas').catch(() => null)),
+    fetchSheetCSV(spreadsheetId, 'Bajos_Indicadores').catch(() => fetchSheetCSV(spreadsheetId, 'Bajos Indicadores').catch(() => null))
+  ]);
 
-// Endpoint principal para consultar y consolidar datos de Google Sheets
-app.get(['/api/sheets/data', '/sheets/data'], (async (req, res) => {
-  const spreadsheetId = (req.query.spreadsheetId as string) || SPREADSHEET_ID_DEFAULT;
+  let rendimientos: EvaluacionRendimiento[] = [];
+  let consolidados: EvaluacionCalidad[] = [];
+  let matriculas: PersonaMatricula[] = [];
+  let bajosIndicadores: RegistroBajoIndicador[] = [];
+  let source: 'google_sheets_live' | 'mock_default' = 'google_sheets_live';
 
-  try {
-    // Intentar leer las pestañas desde Google Sheets
-    const [rawRendimiento, rawConsolidado, rawMatriculas, rawBajosIndicadores] = await Promise.all([
-      fetchSheetCSV(spreadsheetId, 'Rendimiento').catch(() => null),
-      fetchSheetCSV(spreadsheetId, 'Consolidado').catch(() => null),
-      fetchSheetCSV(spreadsheetId, 'Matrículas').catch(() => fetchSheetCSV(spreadsheetId, 'Matriculas').catch(() => null)),
-      fetchSheetCSV(spreadsheetId, 'Bajos_Indicadores').catch(() => fetchSheetCSV(spreadsheetId, 'Bajos Indicadores').catch(() => null))
-    ]);
-
-    let rendimientos: EvaluacionRendimiento[] = [];
-    let consolidados: EvaluacionCalidad[] = [];
-    let matriculas: PersonaMatricula[] = [];
-    let bajosIndicadores: RegistroBajoIndicador[] = [];
-    let source: 'google_sheets_live' | 'mock_default' = 'google_sheets_live';
-
-    if (rawRendimiento && rawRendimiento.length > 0) {
-      rendimientos = mapRendimientoRows(rawRendimiento);
-    }
-    if (rawConsolidado && rawConsolidado.length > 0) {
-      consolidados = mapConsolidadoRows(rawConsolidado);
-    }
-    if (rawMatriculas && rawMatriculas.length > 0) {
-      matriculas = mapMatriculasRows(rawMatriculas);
-    }
-    if (rawBajosIndicadores && rawBajosIndicadores.length > 0) {
-      bajosIndicadores = mapBajosIndicadoresRows(rawBajosIndicadores);
-    }
-
-    // Si la lectura en vivo falló o no devolvió filas suficientes, usamos mock predeterminado
-    if (rendimientos.length === 0 && consolidados.length === 0) {
-      source = 'mock_default';
-      rendimientos = MOCK_RENDIMIENTO;
-      consolidados = MOCK_CONSOLIDADO_CALIDAD;
-      matriculas = MOCK_MATRICULAS;
-      bajosIndicadores = MOCK_BAJOS_INDICADORES;
-    } else {
-      // Completar matrículas y bajos indicadores si estaban vacíos
-      if (matriculas.length === 0) {
-        matriculas = MOCK_MATRICULAS;
-      }
-      if (bajosIndicadores.length === 0) {
-        bajosIndicadores = MOCK_BAJOS_INDICADORES;
-      }
-    }
-
-    const consolidadoPriorizado = consolidarPriorizacion(rendimientos, consolidados, matriculas);
-
-    // Obtener lista única de semanas ordenadas descendantemente
-    const semanasSet = new Set<string>();
-    rendimientos.forEach((r) => r.semana && semanasSet.add(r.semana));
-    consolidados.forEach((c) => c.semana && semanasSet.add(c.semana));
-    bajosIndicadores.forEach((b) => b.semana && semanasSet.add(b.semana));
-    const semanasDisponibles = Array.from(semanasSet).sort().reverse();
-
-    const payload: SheetsDataResponse = {
-      sheetId: spreadsheetId,
-      source,
-      lastUpdated: new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-      semanasDisponibles,
-      rendimientoRaw: rendimientos,
-      consolidadoRaw: consolidados,
-      matriculasRaw: matriculas,
-      bajosIndicadoresRaw: bajosIndicadores,
-      consolidadoPriorizado
-    };
-
-    return res.json(payload);
-  } catch (err: any) {
-    console.error('Error procesando Google Sheets:', err);
-    // Fallback gracioso a mockdata ante errores de conexión o permisos
-    const fallbackConsolidado = consolidarPriorizacion(
-      MOCK_RENDIMIENTO,
-      MOCK_CONSOLIDADO_CALIDAD,
-      MOCK_MATRICULAS
-    );
-
-    return res.json({
-      sheetId: spreadsheetId,
-      source: 'mock_default',
-      lastUpdated: new Date().toLocaleTimeString('es-CO'),
-      semanasDisponibles: ['2026-28', '2026-27'],
-      rendimientoRaw: MOCK_RENDIMIENTO,
-      consolidadoRaw: MOCK_CONSOLIDADO_CALIDAD,
-      matriculasRaw: MOCK_MATRICULAS,
-      bajosIndicadoresRaw: MOCK_BAJOS_INDICADORES,
-      consolidadoPriorizado: fallbackConsolidado,
-      error: `No se pudo conectar a Google Sheets en tiempo real: ${err.message}. Mostrando datos locales de respaldo.`
-    });
+  if (rawRendimiento && rawRendimiento.length > 0) {
+    rendimientos = mapRendimientoRows(rawRendimiento);
   }
-}) as express.RequestHandler);
+  if (rawConsolidado && rawConsolidado.length > 0) {
+    consolidados = mapConsolidadoRows(rawConsolidado);
+  }
+  if (rawMatriculas && rawMatriculas.length > 0) {
+    matriculas = mapMatriculasRows(rawMatriculas);
+  }
+  if (rawBajosIndicadores && rawBajosIndicadores.length > 0) {
+    bajosIndicadores = mapBajosIndicadoresRows(rawBajosIndicadores);
+  }
 
-async function startServer() {
-  if (process.env.NODE_ENV !== 'production') {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: 'spa'
-    });
-    app.use(vite.middlewares);
+  if (rendimientos.length === 0 && consolidados.length === 0) {
+    source = 'mock_default';
+    rendimientos = MOCK_RENDIMIENTO;
+    consolidados = MOCK_CONSOLIDADO_CALIDAD;
+    matriculas = MOCK_MATRICULAS;
+    bajosIndicadores = MOCK_BAJOS_INDICADORES;
   } else {
-    const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
-    app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
-    });
+    if (matriculas.length === 0) matriculas = MOCK_MATRICULAS;
+    if (bajosIndicadores.length === 0) bajosIndicadores = MOCK_BAJOS_INDICADORES;
   }
 
-  if (process.env.VERCEL !== '1') {
-    app.listen(PORT, '0.0.0.0', () => {
-      console.log(`Server listening on http://0.0.0.0:${PORT}`);
-    });
-  }
-}
+  const consolidadoPriorizado = consolidarPriorizacion(rendimientos, consolidados, matriculas);
 
-if (process.env.VERCEL !== '1') {
-  startServer();
-}
+  const semanasSet = new Set<string>();
+  rendimientos.forEach((r) => r.semana && semanasSet.add(r.semana));
+  consolidados.forEach((c) => c.semana && semanasSet.add(c.semana));
+  bajosIndicadores.forEach((b) => b.semana && semanasSet.add(b.semana));
+  const semanasDisponibles = Array.from(semanasSet).sort().reverse();
 
-export default app;
+  return {
+    sheetId: spreadsheetId,
+    rendimientoRaw: rendimientos,
+    consolidadoRaw: consolidados,
+    matriculasRaw: matriculas,
+    bajosIndicadoresRaw: bajosIndicadores,
+    consolidadoPriorizado,
+    semanasDisponibles,
+    source,
+    lastUpdated: new Date().toISOString()
+  };
+}

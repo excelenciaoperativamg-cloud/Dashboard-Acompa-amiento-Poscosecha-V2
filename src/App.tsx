@@ -7,6 +7,7 @@ import {
   PersonaMatricula
 } from './types';
 import { consolidarPriorizacion } from './utils/calculations';
+import { fetchSheetsDataFromGoogle } from './utils/sheets';
 import { Header } from './components/Header';
 import { KPICards } from './components/KPICards';
 import { FilterBar } from './components/FilterBar';
@@ -42,18 +43,37 @@ export default function App() {
   const fetchSheetsData = async (targetId: string) => {
     setIsRefreshing(true);
     try {
-      const res = await fetch(`/api/sheets/data?spreadsheetId=${encodeURIComponent(targetId)}`);
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}`);
+      let data: SheetsDataResponse | null = null;
+      try {
+        const res = await fetch(`/api/sheets/data?spreadsheetId=${encodeURIComponent(targetId)}`);
+        if (res.ok) {
+          data = await res.json();
+        }
+      } catch (e) {
+        console.warn('Backend API request failed, trying client-side Google Sheets fetch:', e);
       }
-      const data: SheetsDataResponse = await res.json();
-      setSheetsData(data);
-      if (data.semanasDisponibles && data.semanasDisponibles.length > 0) {
-        setSemanaSeleccionada(data.semanasDisponibles[0]);
+
+      // If server returned mock_default or failed, do client-side direct fetch to Google Sheets!
+      if (!data || data.source === 'mock_default' || (data.rendimientoRaw.length === 0 && data.consolidadoRaw.length === 0)) {
+        try {
+          const clientData = await fetchSheetsDataFromGoogle(targetId);
+          if (clientData.rendimientoRaw.length > 0 || clientData.consolidadoRaw.length > 0) {
+            data = clientData;
+          }
+        } catch (clientErr) {
+          console.error('Client-side Google Sheets fetch failed:', clientErr);
+        }
+      }
+
+      if (data) {
+        setSheetsData(data);
+        if (data.semanasDisponibles && data.semanasDisponibles.length > 0) {
+          setSemanaSeleccionada(data.semanasDisponibles[0]);
+        }
       }
       setLaboresInicializadas(false);
     } catch (err) {
-      console.error('Error al consultar /api/sheets/data:', err);
+      console.error('Error al actualizar datos:', err);
     } finally {
       setLoading(false);
       setIsRefreshing(false);
