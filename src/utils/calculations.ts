@@ -16,15 +16,10 @@ export const RANKING_SCORE: Record<Calificacion, number> = {
 
 /**
  * Evalúa el rendimiento según los parámetros actualizados:
- * - Rendimiento Meta: Meta de la labor.
- * - Rendimiento Mínimo: Mínimo para cumplir.
- * - Rendimiento en Observación: Umbral para estado en observación.
- * 
- * Reglas:
- * > Meta -> Sobresaliente
- * <= Meta y > Mínimo -> Bueno
- * <= Mínimo y >= Observación (igual al Mínimo y mayor a Observación) -> En desarrollo
- * < Observación -> En observación
+ * - Sobresaliente: es mayor o igual a la meta
+ * - Bueno: es menor a la meta y mayor al mínimo
+ * - En Desarrollo: igual o menor al mínimo y mayor en Observación
+ * - En Observación: menor o igual a En Observación
  */
 export function evaluarRendimiento(
   rendimiento: number,
@@ -39,13 +34,13 @@ export function evaluarRendimiento(
     ? observacion
     : Math.round(minimo * 0.9);
 
-  if (rendimiento > meta) {
+  if (rendimiento >= meta) {
     return 'Sobresaliente';
   }
-  if (rendimiento <= meta && rendimiento > minimo) {
+  if (rendimiento < meta && rendimiento > minimo) {
     return 'Bueno';
   }
-  if (rendimiento <= minimo && rendimiento >= obsThreshold) {
+  if (rendimiento <= minimo && rendimiento > obsThreshold) {
     return 'En desarrollo';
   }
   return 'En observación';

@@ -132,19 +132,19 @@ export const DecisionMatrixSection: React.FC = () => {
               </thead>
               <tbody className="divide-y divide-stone-100 text-stone-700">
                 <tr>
-                  <td className="p-2 border border-stone-200">Sobresaliente (&gt; Rendimiento Meta)</td>
+                  <td className="p-2 border border-stone-200">Sobresaliente (≥ Rendimiento Meta)</td>
                   <td className="p-2 border border-stone-200 text-center font-bold text-stone-800">0</td>
                 </tr>
                 <tr>
-                  <td className="p-2 border border-stone-200">Bueno (Entre Meta y Mínimo)</td>
+                  <td className="p-2 border border-stone-200">Bueno (&lt; Meta y &gt; Mínimo)</td>
                   <td className="p-2 border border-stone-200 text-center font-bold text-stone-800">0</td>
                 </tr>
                 <tr className="bg-amber-50/30">
-                  <td className="p-2 border border-stone-200 text-amber-800">En desarrollo (Mínimo a Observación)</td>
+                  <td className="p-2 border border-stone-200 text-amber-800">En desarrollo (≤ Mínimo y &gt; Observación)</td>
                   <td className="p-2 border border-stone-200 text-center font-bold text-amber-800">1</td>
                 </tr>
                 <tr className="bg-rose-50/30">
-                  <td className="p-2 border border-stone-200 text-rose-800">En observación (&lt; Rendimiento en Observación)</td>
+                  <td className="p-2 border border-stone-200 text-rose-800">En observación (≤ Rendimiento en Observación)</td>
                   <td className="p-2 border border-stone-200 text-center font-bold text-rose-800">1</td>
                 </tr>
               </tbody>
@@ -163,10 +163,10 @@ export const DecisionMatrixSection: React.FC = () => {
             Criterios Hoja Rendimiento
           </h4>
           <ul className="list-disc list-inside text-stone-600 space-y-1">
-            <li><strong>Sobresaliente:</strong> Rendimiento &gt; Rendimiento Meta</li>
-            <li><strong>Bueno:</strong> Rendimiento entre Rendimiento Meta y Rendimiento Mínimo</li>
-            <li><strong>En desarrollo:</strong> Rendimiento igual al Mínimo y mayor a Rendimiento en Observación</li>
-            <li><strong>En observación:</strong> Rendimiento &lt; Rendimiento en Observación</li>
+            <li><strong>Sobresaliente:</strong> Rendimiento ≥ Rendimiento Meta</li>
+            <li><strong>Bueno:</strong> Rendimiento &lt; Meta y &gt; Rendimiento Mínimo</li>
+            <li><strong>En desarrollo:</strong> Rendimiento ≤ Rendimiento Mínimo y &gt; Rendimiento en Observación</li>
+            <li><strong>En observación:</strong> Rendimiento ≤ Rendimiento en Observación</li>
             <li className="text-[11px] text-stone-400 pt-1">
               <em>Nota: Si una persona tiene múltiples rendimientos durante la semana, se prioriza el más bajo.</em>
             </li>
