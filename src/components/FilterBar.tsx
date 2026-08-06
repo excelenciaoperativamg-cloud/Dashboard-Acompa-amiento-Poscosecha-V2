@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Filter, Calendar, Grid, Table as TableIcon, Briefcase, IdCard, Building2, UserCheck } from 'lucide-react';
+import { Search, Filter, Calendar, Grid, Table as TableIcon, Briefcase, IdCard, Building2, UserCheck, TrendingUp } from 'lucide-react';
 import { LaborMultiSelect } from './LaborMultiSelect';
 import { PersonaMatricula } from '../types';
 
@@ -26,8 +26,8 @@ interface FilterBarProps {
   searchQuery: string;
   onSearchChange: (q: string) => void;
   
-  activeTab: 'tabla' | 'matriz' | 'bajos_indicadores';
-  onTabChange: (tab: 'tabla' | 'matriz' | 'bajos_indicadores') => void;
+  activeTab: 'tabla' | 'matriz' | 'bajos_indicadores' | 'curva_aprendizaje';
+  onTabChange: (tab: 'tabla' | 'matriz' | 'bajos_indicadores' | 'curva_aprendizaje') => void;
 }
 
 export const FilterBar: React.FC<FilterBarProps> = ({
@@ -80,6 +80,19 @@ export const FilterBar: React.FC<FilterBarProps> = ({
           >
             <UserCheck className="w-4 h-4" />
             Gestión Bajos Indicadores
+          </button>
+
+          <button
+            id="tab-curva-aprendizaje"
+            onClick={() => onTabChange('curva_aprendizaje')}
+            className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-medium transition-all cursor-pointer ${
+              activeTab === 'curva_aprendizaje'
+                ? 'bg-[#0a2958] text-white shadow-xs'
+                : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+            }`}
+          >
+            <TrendingUp className="w-4 h-4" />
+            Curva de Aprendizaje
           </button>
 
           <button

@@ -14,6 +14,7 @@ import { FilterBar } from './components/FilterBar';
 import { ConsolidadoTable } from './components/ConsolidadoTable';
 import { DecisionMatrixSection } from './components/DecisionMatrixSection';
 import { GestionBajosIndicadores } from './components/GestionBajosIndicadores';
+import { CurvaAprendizaje } from './components/CurvaAprendizaje';
 import { MOCK_RENDIMIENTO, MOCK_CONSOLIDADO_CALIDAD, MOCK_MATRICULAS, MOCK_BAJOS_INDICADORES } from './data/mockData';
 import { AlertTriangle, RefreshCw, Sparkles, BookOpen } from 'lucide-react';
 
@@ -38,7 +39,7 @@ export default function App() {
   const [matriculaSeleccionada, setMatriculaSeleccionada] = useState<string>('TODAS');
   const [areaMatriculaSeleccionada, setAreaMatriculaSeleccionada] = useState<string>('TODAS');
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [activeTab, setActiveTab] = useState<'tabla' | 'matriz' | 'bajos_indicadores'>('tabla');
+  const [activeTab, setActiveTab] = useState<'tabla' | 'matriz' | 'bajos_indicadores' | 'curva_aprendizaje'>('tabla');
 
   const fetchSheetsData = async (targetId: string) => {
     setIsRefreshing(true);
@@ -334,7 +335,16 @@ export default function App() {
               />
             )}
 
-            {/* Tab 3: Matriz de Decisión */}
+            {/* Tab 3: Curva de Aprendizaje */}
+            {activeTab === 'curva_aprendizaje' && (
+              <CurvaAprendizaje
+                rendimientoData={activeRendimientoRaw}
+                semanasDisponibles={semanasDisponibles}
+                laboresDisponibles={laboresDisponibles}
+              />
+            )}
+
+            {/* Tab 4: Matriz de Decisión */}
             {activeTab === 'matriz' && <DecisionMatrixSection />}
           </>
         )}
