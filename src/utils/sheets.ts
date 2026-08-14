@@ -75,22 +75,31 @@ export function mapRendimientoRows(rows: any[]): EvaluacionRendimiento[] {
       return matchKey ? row[matchKey] : undefined;
     };
 
+    const rawIdRendimiento = getValGeneric(['id_rendimiento', 'idrendimiento', 'id_rend']);
+    const rawLlave = getValGeneric(['llave', 'key']);
     const rawAno = getValGeneric(['ano', 'year']);
     const rawSemana = getValGeneric(['semana', 'sem', 'week']) || '2026-28';
-    const rawFecha = getValGeneric(['fecha', 'date', 'dia', 'f. evaluacion', 'f.evaluacion', 'fecha registro', 'fecha evaluacion']) || '';
+    const rawFecha = getValGeneric(['fecha', 'date', 'f. evaluacion', 'f.evaluacion', 'fecha registro', 'fecha evaluacion']) || '';
     const rawCodigo = getValCode() || '';
     const rawNombre = getValName() || '';
     const rawLabor = getValGeneric(['labor', 'tarea', 'actividad']) || 'Poscosecha General';
 
     const rendKey = keys.find(k => {
       const cleanK = cleanHeader(k);
-      if (cleanK.includes('meta') || cleanK.includes('minimo') || cleanK.includes('mínimo') || cleanK.includes('observacion') || cleanK.includes('observación')) return false;
+      if (cleanK.includes('meta') || cleanK.includes('esperado') || cleanK.includes('minimo') || cleanK.includes('mínimo') || cleanK.includes('observacion') || cleanK.includes('observación')) return false;
       return cleanK === 'rendimiento' || cleanK === 'rend' || cleanK.includes('productividad');
     });
     const rawRendimiento = rendKey ? row[rendKey] : undefined;
     const rawMeta = getValGeneric(['meta', 'rendimiento meta']);
+    const rawEsperado = getValGeneric(['rendimiento o esperado', 'rendimiento esperado', 'esperado', 'rend.esperado', 'rend. esperado']);
     const rawMinimo = getValGeneric(['minimo', 'rendimiento minimo', 'mínimo']);
     const rawObservacion = getValGeneric(['observacion', 'rendimiento observacion', 'observación', 'en observacion']);
+    const rawNuevoAntiguo = getValGeneric(['nuevo/antiguo', 'nuevo_antiguo', 'nuevo o antiguo', 'condicion', 'clasificacion', 'antiguedad', 'antigued', 'nuevo']);
+    const rawFechaIngreso = getValGeneric(['fecha de ingreso', 'fecha_ingreso', 'f.ingreso', 'f. ingreso', 'fingreso', 'ingreso']);
+    const rawDia = getValGeneric(['dia', 'día']);
+    const rawProceso = getValGeneric(['proceso', 'proc']);
+    const rawEntrenador = getValGeneric(['entrenador', 'formador', 'instructor']);
+    const rawRegistro = getValGeneric(['registro']);
 
     let semana = String(rawSemana).trim();
     if (semana && !semana.includes('-')) {
@@ -103,10 +112,13 @@ export function mapRendimientoRows(rows: any[]): EvaluacionRendimiento[] {
     const ano = parseNumber(rawAno, parseInt(semana.split('-')[0]) || 2026);
     const rendimiento = parseNumber(rawRendimiento, 0);
     const meta = parseNumber(rawMeta, 100);
+    const rendimientoEsperado = rawEsperado !== undefined ? parseNumber(rawEsperado, meta) : meta;
     const minimo = parseNumber(rawMinimo, 80);
     const observacion = parseNumber(rawObservacion, Math.round(minimo * 0.9));
 
     return {
+      idRendimiento: rawIdRendimiento ? String(rawIdRendimiento).trim() : undefined,
+      llave: rawLlave ? String(rawLlave).trim() : undefined,
       ano,
       semana,
       fecha: rawFecha ? String(rawFecha).trim() : undefined,
@@ -114,9 +126,16 @@ export function mapRendimientoRows(rows: any[]): EvaluacionRendimiento[] {
       nombre: String(rawNombre).trim(),
       labor: String(rawLabor).trim(),
       rendimiento,
-      meta,
+      meta: rendimientoEsperado > 0 ? rendimientoEsperado : meta,
+      rendimientoEsperado,
       minimo,
-      observacion
+      observacion,
+      nuevoAntiguo: rawNuevoAntiguo ? String(rawNuevoAntiguo).trim() : undefined,
+      fechaIngreso: rawFechaIngreso ? String(rawFechaIngreso).trim() : undefined,
+      dia: rawDia !== undefined && rawDia !== '' ? (isNaN(Number(rawDia)) ? String(rawDia).trim() : Number(rawDia)) : undefined,
+      proceso: rawProceso ? String(rawProceso).trim() : undefined,
+      entrenador: rawEntrenador ? String(rawEntrenador).trim() : undefined,
+      registro: rawRegistro ? String(rawRegistro).trim() : undefined
     };
   }).filter(item => item.codigo !== '' || item.nombre !== '');
 }

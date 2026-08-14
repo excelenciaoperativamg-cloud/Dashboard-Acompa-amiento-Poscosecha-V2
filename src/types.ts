@@ -1,6 +1,8 @@
 export type Calificacion = 'Sobresaliente' | 'Bueno' | 'En desarrollo' | 'En observación' | '-';
 
 export interface EvaluacionRendimiento {
+  idRendimiento?: string;
+  llave?: string;
   ano: number;
   semana: string; // e.g. "2026-28"
   fecha?: string; // e.g. "15/07/2026"
@@ -12,6 +14,13 @@ export interface EvaluacionRendimiento {
   minimo: number;
   observacion?: number; // Rendimiento en observación
   resultadoRendimiento?: Calificacion;
+  nuevoAntiguo?: string; // e.g. "En ruta", "Nuevo", "Antiguo"
+  fechaIngreso?: string; // e.g. "01/03/2026"
+  dia?: number | string; // e.g. 1, 2, 3, 4, 5 (Día en curva de aprendizaje)
+  rendimientoEsperado?: number; // Rendimiento o Esperado (meta esperada)
+  proceso?: string;
+  entrenador?: string;
+  registro?: string;
 }
 
 export interface EvaluacionCalidad {
