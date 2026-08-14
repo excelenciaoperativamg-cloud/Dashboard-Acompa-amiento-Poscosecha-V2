@@ -206,12 +206,35 @@ function mapConsolidadoRows(rows: any[]): EvaluacionCalidad[] {
       return matchKey ? row[matchKey] : undefined;
     };
 
+    const rawIdCalidad = getValGeneric(['id consolidado', 'id_consolidado', 'id calidad', 'id_calidad', 'id']);
+    const rawLlave = getValGeneric(['llave', 'key', 'id registro']);
     const rawAno = getValGeneric(['ano', 'year']);
     const rawSemana = getValGeneric(['semana', 'sem', 'week']) || '2026-28';
-    const rawFecha = getValGeneric(['fecha', 'date', 'dia', 'f. evaluacion', 'f.evaluacion', 'fecha registro', 'fecha evaluacion']) || '';
+    const rawFecha = getValGeneric(['fecha', 'date', 'f. evaluacion', 'f.evaluacion', 'fecha registro', 'fecha evaluacion']) || '';
     const rawCodigo = getValCode() || '';
     const rawNombre = getValName() || '';
     const rawLabor = getValGeneric(['labor', 'tarea', 'actividad']) || 'Calidad Poscosecha';
+    const rawNuevoAntiguo = getValGeneric(['nuevo/antiguo', 'nuevo / antiguo', 'nuevo_antiguo', 'estado', 'condicion', 'tipo operario', 'tipo']);
+    const rawFechaIngreso = getValGeneric(['fecha de ingreso', 'fecha ingreso', 'f.ingreso', 'f. ingreso', 'ingreso']);
+    // Búsqueda específica para Día (exacta o prefijo/sufijo)
+    const findDiaKey = (): string | undefined => {
+      const cleanKeys = keys.map(k => ({ original: k, clean: cleanHeader(k) }));
+      const exacts = ['dia', 'dias', 'n dia', 'dia de curva', 'dia curva', 'dia evaluacion', 'no dia', 'num dia', 'numero dia', 'dia numero'];
+      for (const ex of exacts) {
+        const found = cleanKeys.find(ck => ck.clean === ex);
+        if (found) return found.original;
+      }
+      const match = cleanKeys.find(ck => {
+        if (ck.clean.includes('mediana') || ck.clean.includes('auditoria') || ck.clean.includes('condicion') || ck.clean.includes('estadia')) return false;
+        return ck.clean.startsWith('dia ') || ck.clean.endsWith(' dia') || ck.clean.includes(' dia ');
+      });
+      return match ? match.original : undefined;
+    };
+    const diaKey = findDiaKey();
+    const rawDia = diaKey ? row[diaKey] : getValGeneric(['dia', 'dias', 'dia evaluacion', 'dia de curva', 'dia curva', 'n dia']);
+    const rawProceso = getValGeneric(['proceso', 'linea', 'area']);
+    const rawEntrenador = getValGeneric(['entrenador', 'formador', 'capacitador', 'supervisor']);
+    const rawRegistro = getValGeneric(['registro', 'tipo registro', 'origen']);
 
     // Búsqueda inteligente de columnas de Calidad, Proceso y Producto
     const findMetricKey = (metricName: 'proceso' | 'producto' | 'calidad'): string | undefined => {
@@ -298,12 +321,22 @@ function mapConsolidadoRows(rows: any[]): EvaluacionCalidad[] {
     const metaCal = parseNumber(rawMetaCalidad, 90);
 
     return {
+      idCalidad: rawIdCalidad ? String(rawIdCalidad).trim() : undefined,
+      llave: rawLlave ? String(rawLlave).trim() : undefined,
       ano,
       semana,
       fecha: rawFecha ? String(rawFecha).trim() : undefined,
       codigo: String(rawCodigo).trim(),
       nombre: String(rawNombre).trim(),
       labor: String(rawLabor).trim(),
+      nuevoAntiguo: rawNuevoAntiguo ? String(rawNuevoAntiguo).trim() : undefined,
+      fechaIngreso: rawFechaIngreso ? String(rawFechaIngreso).trim() : undefined,
+      dia: rawDia !== undefined && rawDia !== '' && rawDia !== null
+        ? (String(rawDia).replace(/\D/g, '') !== '' ? parseInt(String(rawDia).replace(/\D/g, ''), 10) : String(rawDia).trim())
+        : undefined,
+      proceso: rawProceso ? String(rawProceso).trim() : undefined,
+      entrenador: rawEntrenador ? String(rawEntrenador).trim() : undefined,
+      registro: rawRegistro ? String(rawRegistro).trim() : undefined,
       porcentajeProcentaje: isNaN(valProceso) ? finalCalidad : valProceso,
       porcentajeProceso: isNaN(valProceso) ? undefined : valProceso,
       porcentajeProducto: isNaN(valProducto) ? undefined : valProducto,

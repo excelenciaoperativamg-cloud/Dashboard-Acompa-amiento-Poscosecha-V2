@@ -24,12 +24,20 @@ export interface EvaluacionRendimiento {
 }
 
 export interface EvaluacionCalidad {
+  idCalidad?: string;
+  llave?: string;
   ano: number;
   semana: string;
   fecha?: string; // e.g. "15/07/2026"
   codigo: string;
   nombre: string;
   labor: string;
+  dia?: number | string;
+  nuevoAntiguo?: string;
+  fechaIngreso?: string;
+  proceso?: string;
+  entrenador?: string;
+  registro?: string;
   porcentajeProcentaje?: number; // legacy field
   porcentajeProceso?: number;    // % Proceso e.g. 88
   porcentajeProducto?: number;   // % Producto e.g. 92

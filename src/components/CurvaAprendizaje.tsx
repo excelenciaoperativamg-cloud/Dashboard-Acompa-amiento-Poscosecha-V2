@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { EvaluacionRendimiento } from '../types';
+import { EvaluacionRendimiento, EvaluacionCalidad } from '../types';
 import {
   ResponsiveContainer,
   LineChart,
@@ -25,17 +25,20 @@ import {
   UserCheck,
   Clock,
   Search,
-  FilterX
+  FilterX,
+  ShieldCheck
 } from 'lucide-react';
 
 interface CurvaAprendizajeProps {
   rendimientoData: EvaluacionRendimiento[];
+  consolidadoData?: EvaluacionCalidad[];
   semanasDisponibles: string[];
   laboresDisponibles: string[];
 }
 
 export const CurvaAprendizaje: React.FC<CurvaAprendizajeProps> = ({
   rendimientoData,
+  consolidadoData = [],
   semanasDisponibles,
   laboresDisponibles
 }) => {
@@ -251,6 +254,174 @@ export const CurvaAprendizaje: React.FC<CurvaAprendizajeProps> = ({
     };
   }, [filteredData]);
 
+  // Aggregated data for Calidad Chart from Consolidado sheet (strictly grouping by 'Día' column)
+  const chartCalidadData = useMemo(() => {
+    if (!consolidadoData || consolidadoData.length === 0) {
+      return [];
+    }
+
+    // 1. Get filtered person keys from filteredData (Rendimiento)
+    const operariosFiltradosNombres = new Set(
+      filteredData.map((r) => r.nombre.trim().toLowerCase()).filter(Boolean)
+    );
+    const operariosFiltradosCodigos = new Set(
+      filteredData.map((r) => r.codigo.trim()).filter(Boolean)
+    );
+
+    // Filter consolidadoData for esas mismas personas
+    const filteredCalidad = consolidadoData.filter((item) => {
+      const nameKey = (item.nombre || '').trim().toLowerCase();
+      const codeKey = (item.codigo || '').trim();
+
+      // If specific operario filter is selected
+      if (operarioFiltro !== 'TODOS') {
+        const target = operarioFiltro.trim().toLowerCase();
+        const matchesName = nameKey.includes(target) || target.includes(nameKey);
+        const matchesCode = codeKey && codeKey === operarioFiltro.trim();
+        if (!matchesName && !matchesCode) return false;
+      } else {
+        // If TODOS, must match one of the filtered operarios in Rendimiento (which are En ruta)
+        const matchesName = nameKey && operariosFiltradosNombres.has(nameKey);
+        const matchesCode = codeKey && operariosFiltradosCodigos.has(codeKey);
+        if (!matchesName && !matchesCode) return false;
+      }
+
+      // Labor filter
+      if (laborFiltro !== 'TODAS' && item.labor) {
+        if (item.labor.trim().toLowerCase() !== laborFiltro.trim().toLowerCase()) {
+          return false;
+        }
+      }
+
+      // Semana filter
+      if (semanaFiltro !== 'TODAS' && item.semana) {
+        if (item.semana.trim() !== semanaFiltro.trim()) {
+          return false;
+        }
+      }
+
+      // Fecha Ingreso filter
+      if (fechaIngresoFiltro !== 'TODAS' && item.fechaIngreso) {
+        if (item.fechaIngreso.trim() !== fechaIngresoFiltro.trim()) {
+          return false;
+        }
+      }
+
+      const val = item.porcentajeCalidad ?? item.porcentajeProceso ?? item.porcentajeProducto;
+      return val !== undefined && !isNaN(val);
+    });
+
+    // Helper to determine strictly 'dia'
+    const findDiaForCalidad = (calItem: EvaluacionCalidad): string | undefined => {
+      if (calItem.dia !== undefined && calItem.dia !== null && String(calItem.dia).trim() !== '') {
+        const digits = String(calItem.dia).replace(/\D/g, '');
+        if (digits !== '') {
+          return String(parseInt(digits, 10));
+        }
+        return String(calItem.dia).trim();
+      }
+      // Look up in rendimientoData for corresponding dia based on person & fecha
+      const matchRend = rendimientoData.find((r) => {
+        const nameMatch = r.nombre && calItem.nombre && r.nombre.trim().toLowerCase() === calItem.nombre.trim().toLowerCase();
+        const codeMatch = r.codigo && calItem.codigo && r.codigo.trim() === calItem.codigo.trim();
+        if (!nameMatch && !codeMatch) return false;
+        if (r.fecha && calItem.fecha && r.fecha.trim() === calItem.fecha.trim()) return true;
+        return false;
+      });
+      if (matchRend && matchRend.dia !== undefined && matchRend.dia !== null && String(matchRend.dia).trim() !== '') {
+        const digits = String(matchRend.dia).replace(/\D/g, '');
+        if (digits !== '') {
+          return String(parseInt(digits, 10));
+        }
+        return String(matchRend.dia).trim();
+      }
+      return undefined;
+    };
+
+    const grouped = new Map<
+      string,
+      {
+        totalCalidad: number;
+        count: number;
+        items: EvaluacionCalidad[];
+      }
+    >();
+
+    filteredCalidad.forEach((item) => {
+      const diaVal = findDiaForCalidad(item);
+      // Solo tomamos el dato del Día, descartando cualquier fecha
+      if (!diaVal) return;
+
+      const key = diaVal;
+      const valCalidad = item.porcentajeCalidad ?? item.porcentajeProceso ?? item.porcentajeProducto ?? 0;
+
+      if (!grouped.has(key)) {
+        grouped.set(key, {
+          totalCalidad: 0,
+          count: 0,
+          items: []
+        });
+      }
+
+      const grp = grouped.get(key)!;
+      grp.totalCalidad += valCalidad;
+      grp.count += 1;
+      grp.items.push(item);
+    });
+
+    // Convert to sorted array
+    const result = Array.from(grouped.entries()).map(([periodo, data]) => {
+      const promedioCalidad = Math.round((data.totalCalidad / data.count) * 10) / 10;
+      const promedioEsperado = 90; // Meta fija esperada de 90% para todos los días
+      const brecha = Math.round((promedioCalidad - promedioEsperado) * 10) / 10;
+      const cumplimiento = Math.round((promedioCalidad / promedioEsperado) * 100);
+
+      return {
+        periodo,
+        promedioCalidad,
+        promedioEsperado,
+        brecha,
+        cumplimiento,
+        evaluacionesCount: data.count
+      };
+    });
+
+    // Sort strictly by Day number (1, 2, 3, 4, ...)
+    result.sort((a, b) => {
+      const numA = parseInt(a.periodo.replace(/\D/g, ''), 10);
+      const numB = parseInt(b.periodo.replace(/\D/g, ''), 10);
+      if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+      return a.periodo.localeCompare(b.periodo, undefined, { numeric: true });
+    });
+
+    return result;
+  }, [consolidadoData, filteredData, rendimientoData, operarioFiltro, laborFiltro, semanaFiltro, fechaIngresoFiltro]);
+
+  // General KPI metrics for Calidad
+  const globalCalidadKPIs = useMemo(() => {
+    if (chartCalidadData.length === 0) {
+      return {
+        promedioCalidad: 0,
+        promedioEsperado: 90,
+        brecha: 0,
+        totalEvaluaciones: 0
+      };
+    }
+
+    const totalCal = chartCalidadData.reduce((acc, curr) => acc + (curr.promedioCalidad * curr.evaluacionesCount), 0);
+    const count = chartCalidadData.reduce((acc, curr) => acc + curr.evaluacionesCount, 0);
+    const promedioCalidad = count > 0 ? Math.round((totalCal / count) * 10) / 10 : 0;
+    const promedioEsperado = 90;
+    const brecha = Math.round((promedioCalidad - promedioEsperado) * 10) / 10;
+
+    return {
+      promedioCalidad,
+      promedioEsperado,
+      brecha,
+      totalEvaluaciones: count
+    };
+  }, [chartCalidadData]);
+
   return (
     <div className="space-y-5">
       
@@ -386,7 +557,7 @@ export const CurvaAprendizaje: React.FC<CurvaAprendizajeProps> = ({
       </div>
 
       {/* KPI Cards Summary */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
         <div className="bg-white p-3 rounded-xl border border-stone-200 border-t-3 border-t-[#ea580c] shadow-2xs">
           <div className="flex items-center justify-between text-stone-500 mb-1">
             <span className="text-[10px] font-bold uppercase tracking-wider text-[#ea580c]">Prom. Rendimiento</span>
@@ -409,29 +580,44 @@ export const CurvaAprendizaje: React.FC<CurvaAprendizajeProps> = ({
           <p className="text-[10px] text-stone-500 mt-0.5">Meta esperada promedio</p>
         </div>
 
-        <div className="bg-white p-3 rounded-xl border border-stone-200 border-t-3 border-t-amber-500 shadow-2xs">
-          <div className="flex items-center justify-between text-stone-500 mb-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800">Rend. Mínimo</span>
-            <BarChart2 className="w-4 h-4 text-amber-600" />
-          </div>
-          <div className="text-xl font-bold font-serif text-amber-800">
-            {globalKPIs.promedioMinimo}
-          </div>
-          <p className="text-[10px] text-stone-500 mt-0.5">Mínimo para cumplimiento</p>
-        </div>
-
         <div className={`bg-white p-3 rounded-xl border border-stone-200 border-t-3 ${
           globalKPIs.cumplimientoPct >= 100 ? 'border-t-emerald-600 text-emerald-800' : globalKPIs.cumplimientoPct >= 90 ? 'border-t-amber-500 text-amber-800' : 'border-t-rose-600 text-rose-800'
         } shadow-2xs`}>
           <div className="flex items-center justify-between text-stone-500 mb-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider">% Cumplimiento Meta</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider">% Cumpl. Rendimiento</span>
             <Award className="w-4 h-4" />
           </div>
           <div className="text-xl font-bold font-serif">
             {globalKPIs.cumplimientoPct}%
           </div>
           <p className="text-[10px] text-stone-500 mt-0.5">
-            {globalKPIs.brecha >= 0 ? `+${globalKPIs.brecha} sobre la meta` : `${globalKPIs.brecha} vs meta`}
+            {globalKPIs.brecha >= 0 ? `+${globalKPIs.brecha} sobre meta` : `${globalKPIs.brecha} vs meta`}
+          </p>
+        </div>
+
+        <div className="bg-white p-3 rounded-xl border border-stone-200 border-t-3 border-t-emerald-600 shadow-2xs">
+          <div className="flex items-center justify-between text-stone-500 mb-1">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700">Prom. Calidad Real</span>
+            <ShieldCheck className="w-4 h-4 text-emerald-600" />
+          </div>
+          <div className="text-xl font-bold font-serif text-emerald-700">
+            {globalCalidadKPIs.promedioCalidad > 0 ? `${globalCalidadKPIs.promedioCalidad}%` : 'N/D'}
+          </div>
+          <p className="text-[10px] text-stone-500 mt-0.5">Hoja Consolidado</p>
+        </div>
+
+        <div className="bg-white p-3 rounded-xl border border-stone-200 border-t-3 border-t-blue-500 shadow-2xs">
+          <div className="flex items-center justify-between text-stone-500 mb-1">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-blue-700">Meta Calidad</span>
+            <Target className="w-4 h-4 text-blue-500" />
+          </div>
+          <div className="text-xl font-bold font-serif text-blue-700">
+            90.0%
+          </div>
+          <p className="text-[10px] text-stone-500 mt-0.5">
+            {globalCalidadKPIs.promedioCalidad > 0 
+              ? (globalCalidadKPIs.brecha >= 0 ? `+${globalCalidadKPIs.brecha}% (Cumple)` : `${globalCalidadKPIs.brecha}% (Alerta)`)
+              : 'Fija para curva'}
           </p>
         </div>
 
@@ -443,114 +629,241 @@ export const CurvaAprendizaje: React.FC<CurvaAprendizajeProps> = ({
           <div className="text-xl font-bold font-serif text-stone-800">
             {globalKPIs.totalEvaluaciones}
           </div>
-          <p className="text-[10px] text-stone-500 mt-0.5">Registros analizados</p>
+          <p className="text-[10px] text-stone-500 mt-0.5">
+            {globalCalidadKPIs.totalEvaluaciones > 0 ? `${globalCalidadKPIs.totalEvaluaciones} cal.` : 'Registros analizados'}
+          </p>
         </div>
       </div>
 
       {/* Main Section: Chart on Left (75%), Slicers on Right (25%) */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
         
-        {/* Left Column: Chart Card */}
-        <div className="lg:col-span-3 bg-white p-5 rounded-xl border border-stone-200 shadow-xs flex flex-col justify-between">
-          <div className="flex items-center justify-center mb-2 pb-2 border-b border-stone-100">
-            <h3 className="text-xl font-extrabold uppercase tracking-tight text-[#0a2958] font-sans text-center">
-              Rendimiento
-            </h3>
+        {/* Left Column: Charts Container */}
+        <div className="lg:col-span-3 space-y-4">
+          
+          {/* Chart 1: Rendimiento */}
+          <div className="bg-white p-5 rounded-xl border border-stone-200 shadow-xs flex flex-col justify-between">
+            <div className="flex items-center justify-center mb-2 pb-2 border-b border-stone-100">
+              <h3 className="text-xl font-extrabold uppercase tracking-tight text-[#0a2958] font-sans text-center">
+                Rendimiento
+              </h3>
+            </div>
+
+            {chartData.length === 0 ? (
+              <div className="py-24 text-center text-stone-400 text-xs">
+                No se encontraron registros de rendimiento para los filtros seleccionados.
+              </div>
+            ) : (
+              <div className="h-88 w-full pt-4">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart
+                    data={chartData}
+                    margin={{ top: 25, right: 30, left: 10, bottom: 10 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis
+                      dataKey="periodo"
+                      stroke="#525252"
+                      tick={{ fontSize: 11, fontWeight: 600 }}
+                      padding={{ left: 25, right: 25 }}
+                    />
+                    <YAxis
+                      stroke="#525252"
+                      tick={{ fontSize: 11 }}
+                      domain={[0, 'dataMax + 150']}
+                    />
+                    <Tooltip
+                      content={({ active, payload, label }) => {
+                        if (active && payload && payload.length) {
+                          const data = payload[0].payload;
+                          const diff = Math.round((data.promedioRendimiento - data.promedioEsperado) * 10) / 10;
+                          return (
+                            <div className="bg-stone-900 text-white p-3 rounded-lg text-xs shadow-lg border border-stone-700 space-y-1.5">
+                              <p className="font-bold border-b border-stone-700 pb-1 text-stone-200">
+                                {agruparPor === 'dia' ? `Día ${label}` : `Periodo: ${label}`}
+                              </p>
+                              <div className="flex items-center justify-between gap-4 text-blue-400">
+                                <span>Promedio de Rendimiento esperado:</span>
+                                <span className="font-bold">{data.promedioEsperado}</span>
+                              </div>
+                              <div className="flex items-center justify-between gap-4 text-orange-400">
+                                <span>Promedio de Rendimiento:</span>
+                                <span className="font-bold">{data.promedioRendimiento}</span>
+                              </div>
+                              <div className="pt-1 border-t border-stone-800 flex items-center justify-between gap-4 text-stone-300">
+                                <span>Cumplimiento:</span>
+                                <span className={`font-bold ${data.cumplimiento >= 100 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                                  {data.cumplimiento}% ({diff >= 0 ? `+${diff}` : diff})
+                                </span>
+                              </div>
+                              <div className="text-[10px] text-stone-400 pt-0.5">
+                                Registros: {data.evaluacionesCount}
+                              </div>
+                            </div>
+                          );
+                        }
+                        return null;
+                      }}
+                    />
+                    <Legend
+                      verticalAlign="bottom"
+                      height={40}
+                      formatter={(value) => (
+                        <span className="text-xs font-semibold text-stone-700 mr-4">{value}</span>
+                      )}
+                    />
+                    
+                    {/* Line 1: Promedio de Rendimiento esperado (Azul) */}
+                    <Line
+                      type="monotone"
+                      dataKey="promedioEsperado"
+                      name="Promedio de Rendimiento esperado"
+                      stroke="#2563eb"
+                      strokeWidth={2.5}
+                      dot={{ r: 5, fill: '#2563eb', stroke: '#ffffff', strokeWidth: 1.5 }}
+                      activeDot={{ r: 7 }}
+                    >
+                      <LabelList dataKey="promedioEsperado" position="top" offset={10} fill="#1d4ed8" fontSize={10} fontWeight={700} />
+                    </Line>
+
+                    {/* Line 2: Promedio de Rendimiento (Naranja / Marrón) */}
+                    <Line
+                      type="monotone"
+                      dataKey="promedioRendimiento"
+                      name="Promedio de Rendimiento"
+                      stroke="#ea580c"
+                      strokeWidth={2.5}
+                      dot={{ r: 5, fill: '#ea580c', stroke: '#ffffff', strokeWidth: 1.5 }}
+                      activeDot={{ r: 7 }}
+                    >
+                      <LabelList dataKey="promedioRendimiento" position="top" offset={10} fill="#c2410c" fontSize={10} fontWeight={700} />
+                    </Line>
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            )}
           </div>
 
-          {chartData.length === 0 ? (
-            <div className="py-24 text-center text-stone-400 text-xs">
-              No se encontraron registros de rendimiento para los filtros seleccionados.
+          {/* Chart 2: Calidad (Datos de la hoja Consolidado) */}
+          <div className="bg-white p-5 rounded-xl border border-stone-200 shadow-xs flex flex-col justify-between">
+            <div className="flex items-center justify-center mb-2 pb-2 border-b border-stone-100">
+              <h3 className="text-xl font-extrabold uppercase tracking-tight text-[#0a2958] font-sans text-center">
+                Calidad
+              </h3>
             </div>
-          ) : (
-            <div className="h-96 w-full pt-4">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart
-                  data={chartData}
-                  margin={{ top: 25, right: 30, left: 10, bottom: 10 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis
-                    dataKey="periodo"
-                    stroke="#525252"
-                    tick={{ fontSize: 11, fontWeight: 600 }}
-                    padding={{ left: 25, right: 25 }}
-                  />
-                  <YAxis
-                    stroke="#525252"
-                    tick={{ fontSize: 11 }}
-                    domain={[0, 'dataMax + 150']}
-                  />
-                  <Tooltip
-                    content={({ active, payload, label }) => {
-                      if (active && payload && payload.length) {
-                        const data = payload[0].payload;
-                        const diff = Math.round((data.promedioRendimiento - data.promedioEsperado) * 10) / 10;
-                        return (
-                          <div className="bg-stone-900 text-white p-3 rounded-lg text-xs shadow-lg border border-stone-700 space-y-1.5">
-                            <p className="font-bold border-b border-stone-700 pb-1 text-stone-200">
-                              {agruparPor === 'dia' ? `Día ${label}` : `Periodo: ${label}`}
-                            </p>
-                            <div className="flex items-center justify-between gap-4 text-blue-400">
-                              <span>Promedio de Rendimiento esperado:</span>
-                              <span className="font-bold">{data.promedioEsperado}</span>
-                            </div>
-                            <div className="flex items-center justify-between gap-4 text-orange-400">
-                              <span>Promedio de Rendimiento:</span>
-                              <span className="font-bold">{data.promedioRendimiento}</span>
-                            </div>
-                            <div className="pt-1 border-t border-stone-800 flex items-center justify-between gap-4 text-stone-300">
-                              <span>Cumplimiento:</span>
-                              <span className={`font-bold ${data.cumplimiento >= 100 ? 'text-emerald-400' : 'text-amber-400'}`}>
-                                {data.cumplimiento}% ({diff >= 0 ? `+${diff}` : diff})
-                              </span>
-                            </div>
-                            <div className="text-[10px] text-stone-400 pt-0.5">
-                              Registros: {data.evaluacionesCount}
-                            </div>
-                          </div>
-                        );
-                      }
-                      return null;
-                    }}
-                  />
-                  <Legend
-                    verticalAlign="bottom"
-                    height={40}
-                    formatter={(value) => (
-                      <span className="text-xs font-semibold text-stone-700 mr-4">{value}</span>
-                    )}
-                  />
-                  
-                  {/* Line 1: Promedio de Rendimiento esperado (Azul) */}
-                  <Line
-                    type="monotone"
-                    dataKey="promedioEsperado"
-                    name="Promedio de Rendimiento esperado"
-                    stroke="#2563eb"
-                    strokeWidth={2.5}
-                    dot={{ r: 5, fill: '#2563eb', stroke: '#ffffff', strokeWidth: 1.5 }}
-                    activeDot={{ r: 7 }}
-                  >
-                    <LabelList dataKey="promedioEsperado" position="top" offset={10} fill="#1d4ed8" fontSize={10} fontWeight={700} />
-                  </Line>
 
-                  {/* Line 2: Promedio de Rendimiento (Naranja / Marrón) */}
-                  <Line
-                    type="monotone"
-                    dataKey="promedioRendimiento"
-                    name="Promedio de Rendimiento"
-                    stroke="#ea580c"
-                    strokeWidth={2.5}
-                    dot={{ r: 5, fill: '#ea580c', stroke: '#ffffff', strokeWidth: 1.5 }}
-                    activeDot={{ r: 7 }}
+            {chartCalidadData.length === 0 ? (
+              <div className="py-20 text-center text-stone-400 text-xs">
+                No se encontraron registros de calidad en la hoja Consolidado para los filtros seleccionados.
+              </div>
+            ) : (
+              <div className="h-88 w-full pt-4">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart
+                    data={chartCalidadData}
+                    margin={{ top: 25, right: 30, left: 10, bottom: 10 }}
                   >
-                    <LabelList dataKey="promedioRendimiento" position="top" offset={10} fill="#c2410c" fontSize={10} fontWeight={700} />
-                  </Line>
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          )}
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis
+                      dataKey="periodo"
+                      stroke="#525252"
+                      tick={{ fontSize: 11, fontWeight: 600 }}
+                      padding={{ left: 25, right: 25 }}
+                    />
+                    <YAxis
+                      stroke="#525252"
+                      tick={{ fontSize: 11 }}
+                      domain={[60, 105]}
+                      tickFormatter={(value) => `${value}%`}
+                    />
+                    <Tooltip
+                      content={({ active, payload, label }) => {
+                        if (active && payload && payload.length) {
+                          const data = payload[0].payload;
+                          const diff = Math.round((data.promedioCalidad - data.promedioEsperado) * 10) / 10;
+                          return (
+                            <div className="bg-stone-900 text-white p-3 rounded-lg text-xs shadow-lg border border-stone-700 space-y-1.5">
+                              <p className="font-bold border-b border-stone-700 pb-1 text-stone-200">
+                                {`Día ${label}`}
+                              </p>
+                              <div className="flex items-center justify-between gap-4 text-blue-400">
+                                <span>Promedio de Calidad esperado:</span>
+                                <span className="font-bold">90%</span>
+                              </div>
+                              <div className="flex items-center justify-between gap-4 text-emerald-400">
+                                <span>Promedio Calidad:</span>
+                                <span className="font-bold">{data.promedioCalidad}%</span>
+                              </div>
+                              <div className="pt-1 border-t border-stone-800 flex items-center justify-between gap-4 text-stone-300">
+                                <span>Brecha vs Meta (90%):</span>
+                                <span className={`font-bold ${data.promedioCalidad >= 90 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                                  {diff >= 0 ? `+${diff}% (Cumple)` : `${diff}% (Por mejorar)`}
+                                </span>
+                              </div>
+                              <div className="text-[10px] text-stone-400 pt-0.5">
+                                Evaluaciones de Calidad: {data.evaluacionesCount}
+                              </div>
+                            </div>
+                          );
+                        }
+                        return null;
+                      }}
+                    />
+                    <Legend
+                      verticalAlign="bottom"
+                      height={40}
+                      formatter={(value) => (
+                        <span className="text-xs font-semibold text-stone-700 mr-4">{value}</span>
+                      )}
+                    />
+                    
+                    {/* Line 1: Promedio de Calidad esperado (Azul - 90% constante) */}
+                    <Line
+                      type="monotone"
+                      dataKey="promedioEsperado"
+                      name="Promedio de Calidad esperado"
+                      stroke="#2563eb"
+                      strokeWidth={2.5}
+                      dot={{ r: 5, fill: '#2563eb', stroke: '#ffffff', strokeWidth: 1.5 }}
+                      activeDot={{ r: 7 }}
+                    >
+                      <LabelList
+                        dataKey="promedioEsperado"
+                        position="top"
+                        offset={10}
+                        fill="#1d4ed8"
+                        fontSize={10}
+                        fontWeight={700}
+                        formatter={(val: any) => `${val}%`}
+                      />
+                    </Line>
+
+                    {/* Line 2: Promedio Calidad (Verde) */}
+                    <Line
+                      type="monotone"
+                      dataKey="promedioCalidad"
+                      name="Promedio Calidad"
+                      stroke="#16a34a"
+                      strokeWidth={2.5}
+                      dot={{ r: 5, fill: '#16a34a', stroke: '#ffffff', strokeWidth: 1.5 }}
+                      activeDot={{ r: 7 }}
+                    >
+                      <LabelList
+                        dataKey="promedioCalidad"
+                        position="top"
+                        offset={10}
+                        fill="#15803d"
+                        fontSize={10}
+                        fontWeight={700}
+                        formatter={(val: any) => `${val}%`}
+                      />
+                    </Line>
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </div>
+
         </div>
 
         {/* Right Column: Interactive Excel Slicers */}
@@ -679,73 +992,6 @@ export const CurvaAprendizaje: React.FC<CurvaAprendizajeProps> = ({
             </div>
           </div>
 
-        </div>
-      </div>
-
-      {/* Detailed Table Breakdown */}
-      <div className="bg-white rounded-xl border border-stone-200 shadow-xs overflow-hidden">
-        <div className="p-4 bg-stone-50 border-b border-stone-200 flex items-center justify-between">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-stone-700 flex items-center gap-2">
-            <BarChart2 className="w-4 h-4 text-[#0a2958]" />
-            Detalle por Periodo ({agruparPor === 'semana' ? 'Semanas' : 'Fechas'})
-          </h3>
-          <span className="text-xs text-stone-500 font-medium">
-            {chartData.length} periodos analizados
-          </span>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs text-left text-stone-700">
-            <thead className="bg-stone-100/70 uppercase text-[10px] tracking-wider text-stone-500 font-bold border-b border-stone-200">
-              <tr>
-                <th className="py-2.5 px-4">Periodo ({agruparPor === 'semana' ? 'Semana' : 'Fecha'})</th>
-                <th className="py-2.5 px-4 text-center">Evaluaciones</th>
-                <th className="py-2.5 px-4 text-right">Prom. Rend. Real</th>
-                <th className="py-2.5 px-4 text-right">Prom. Esperado (Meta)</th>
-                <th className="py-2.5 px-4 text-right">Prom. Mínimo</th>
-                <th className="py-2.5 px-4 text-right">Brecha (Real - Meta)</th>
-                <th className="py-2.5 px-4 text-center">% Cumplimiento</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-stone-100">
-              {chartData.map((row) => {
-                const diff = Math.round((row.promedioRendimiento - row.promedioEsperado) * 10) / 10;
-                return (
-                  <tr key={row.periodo} className="hover:bg-stone-50/80 transition-colors">
-                    <td className="py-2.5 px-4 font-bold text-[#0a2958]">
-                      {agruparPor === 'semana' ? `Semana ${row.periodo}` : row.periodo}
-                    </td>
-                    <td className="py-2.5 px-4 text-center text-stone-600 font-medium">
-                      {row.evaluacionesCount}
-                    </td>
-                    <td className="py-2.5 px-4 text-right font-bold text-stone-900">
-                      {row.promedioRendimiento}
-                    </td>
-                    <td className="py-2.5 px-4 text-right text-emerald-700 font-medium">
-                      {row.promedioEsperado}
-                    </td>
-                    <td className="py-2.5 px-4 text-right text-amber-700 font-medium">
-                      {row.promedioMinimo}
-                    </td>
-                    <td className={`py-2.5 px-4 text-right font-bold ${diff >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                      {diff >= 0 ? `+${diff}` : diff}
-                    </td>
-                    <td className="py-2.5 px-4 text-center">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold ${
-                        row.cumplimiento >= 100
-                          ? 'bg-emerald-100 text-emerald-800'
-                          : row.cumplimiento >= 90
-                          ? 'bg-amber-100 text-amber-800'
-                          : 'bg-rose-100 text-rose-800'
-                      }`}>
-                        {row.cumplimiento}%
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
         </div>
       </div>
 

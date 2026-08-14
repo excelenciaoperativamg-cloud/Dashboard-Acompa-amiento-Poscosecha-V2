@@ -96,12 +96,35 @@ export const MOCK_RENDIMIENTO: EvaluacionRendimiento[] = [
 ];
 
 export const MOCK_CONSOLIDADO_CALIDAD: EvaluacionCalidad[] = [
+  // PUENTE BLANCO LUIS CARLOS (5 evaluaciones de Calidad para Semana 2026-31)
+  { ano: 2026, semana: '2026-31', fecha: '28/07/2026', codigo: '214747', nombre: 'PUENTE BLANCO LUIS CARLOS', labor: 'Armado ramos', dia: 1, porcentajeCalidad: 92, porcentajeProceso: 92, porcentajeProducto: 95, metaCalidad: 90, nuevoAntiguo: 'En ruta', fechaIngreso: '27/07/2026' },
+  { ano: 2026, semana: '2026-31', fecha: '29/07/2026', codigo: '214747', nombre: 'PUENTE BLANCO LUIS CARLOS', labor: 'Armado ramos', dia: 2, porcentajeCalidad: 94, porcentajeProceso: 94, porcentajeProducto: 96, metaCalidad: 90, nuevoAntiguo: 'En ruta', fechaIngreso: '27/07/2026' },
+  { ano: 2026, semana: '2026-31', fecha: '30/07/2026', codigo: '214747', nombre: 'PUENTE BLANCO LUIS CARLOS', labor: 'Armado ramos', dia: 3, porcentajeCalidad: 88, porcentajeProceso: 88, porcentajeProducto: 92, metaCalidad: 90, nuevoAntiguo: 'En ruta', fechaIngreso: '27/07/2026' },
+  { ano: 2026, semana: '2026-31', fecha: '31/07/2026', codigo: '214747', nombre: 'PUENTE BLANCO LUIS CARLOS', labor: 'Armado ramos', dia: 4, porcentajeCalidad: 96, porcentajeProceso: 96, porcentajeProducto: 98, metaCalidad: 90, nuevoAntiguo: 'En ruta', fechaIngreso: '27/07/2026' },
+  { ano: 2026, semana: '2026-31', fecha: '01/08/2026', codigo: '214747', nombre: 'PUENTE BLANCO LUIS CARLOS', labor: 'Armado ramos', dia: 5, porcentajeCalidad: 98, porcentajeProceso: 98, porcentajeProducto: 100, metaCalidad: 90, nuevoAntiguo: 'En ruta', fechaIngreso: '27/07/2026' },
+
+  // ALCAZAR ALCAZAR MAYBELYS (Semana 2026-31)
+  { ano: 2026, semana: '2026-31', fecha: '28/07/2026', codigo: '214379', nombre: 'ALCAZAR ALCAZAR MAYBELYS', labor: 'Mesas', dia: 1, porcentajeCalidad: 90, porcentajeProceso: 90, porcentajeProducto: 92, metaCalidad: 90, nuevoAntiguo: 'En ruta', fechaIngreso: '14/07/2026' },
+  { ano: 2026, semana: '2026-31', fecha: '29/07/2026', codigo: '214379', nombre: 'ALCAZAR ALCAZAR MAYBELYS', labor: 'Mesas', dia: 2, porcentajeCalidad: 93, porcentajeProceso: 93, porcentajeProducto: 95, metaCalidad: 90, nuevoAntiguo: 'En ruta', fechaIngreso: '14/07/2026' },
+  { ano: 2026, semana: '2026-31', fecha: '30/07/2026', codigo: '214379', nombre: 'ALCAZAR ALCAZAR MAYBELYS', labor: 'Mesas', dia: 3, porcentajeCalidad: 95, porcentajeProceso: 95, porcentajeProducto: 98, metaCalidad: 90, nuevoAntiguo: 'En ruta', fechaIngreso: '14/07/2026' },
+
+  // OYOLA DURANGO MISADAY (Semana 2026-31)
+  { ano: 2026, semana: '2026-31', fecha: '28/07/2026', codigo: '214380', nombre: 'OYOLA DURANGO MISADAY', labor: 'Mesas', dia: 1, porcentajeCalidad: 91, porcentajeProceso: 91, porcentajeProducto: 94, metaCalidad: 90, nuevoAntiguo: 'En ruta', fechaIngreso: '14/07/2026' },
+  { ano: 2026, semana: '2026-31', fecha: '29/07/2026', codigo: '214380', nombre: 'OYOLA DURANGO MISADAY', labor: 'Mesas', dia: 2, porcentajeCalidad: 96, porcentajeProceso: 96, porcentajeProducto: 96, metaCalidad: 90, nuevoAntiguo: 'En ruta', fechaIngreso: '14/07/2026' },
+
+  // VILLAMIL SUAREZ JENIFER ESTER (Semana 2026-22 y 2026-23)
+  { ano: 2026, semana: '2026-22', fecha: '25/05/2026', codigo: '214500', nombre: 'VILLAMIL SUAREZ JENIFER ESTER', labor: 'Clasificación Rosas', dia: 1, porcentajeCalidad: 88, porcentajeProceso: 88, porcentajeProducto: 90, metaCalidad: 90, nuevoAntiguo: 'En ruta', fechaIngreso: '25/05/2026' },
+  { ano: 2026, semana: '2026-22', fecha: '26/05/2026', codigo: '214500', nombre: 'VILLAMIL SUAREZ JENIFER ESTER', labor: 'Clasificación Rosas', dia: 2, porcentajeCalidad: 91, porcentajeProceso: 91, porcentajeProducto: 93, metaCalidad: 90, nuevoAntiguo: 'En ruta', fechaIngreso: '25/05/2026' },
+  { ano: 2026, semana: '2026-22', fecha: '27/05/2026', codigo: '214500', nombre: 'VILLAMIL SUAREZ JENIFER ESTER', labor: 'Clasificación Rosas', dia: 3, porcentajeCalidad: 94, porcentajeProceso: 94, porcentajeProducto: 95, metaCalidad: 90, nuevoAntiguo: 'En ruta', fechaIngreso: '25/05/2026' },
+  { ano: 2026, semana: '2026-22', fecha: '28/05/2026', codigo: '214500', nombre: 'VILLAMIL SUAREZ JENIFER ESTER', labor: 'Clasificación Rosas', dia: 4, porcentajeCalidad: 95, porcentajeProceso: 95, porcentajeProducto: 96, metaCalidad: 90, nuevoAntiguo: 'En ruta', fechaIngreso: '25/05/2026' },
+  { ano: 2026, semana: '2026-22', fecha: '29/05/2026', codigo: '214500', nombre: 'VILLAMIL SUAREZ JENIFER ESTER', labor: 'Clasificación Rosas', dia: 5, porcentajeCalidad: 97, porcentajeProceso: 97, porcentajeProducto: 98, metaCalidad: 90, nuevoAntiguo: 'En ruta', fechaIngreso: '25/05/2026' },
+
   // Ejemplo del usuario: MARTINEZ MARTINEZ LUIS MANUEL (5 evaluaciones en Alimentador, promedio 98%)
-  { ano: 2026, semana: '2026-28', fecha: '13/07/2026', codigo: '1013', nombre: 'MARTINEZ MARTINEZ LUIS MANUEL', labor: 'Alimentador', porcentajeCalidad: 100, porcentajeProceso: 100, porcentajeProducto: 100, metaCalidad: 90 },
-  { ano: 2026, semana: '2026-28', fecha: '14/07/2026', codigo: '1013', nombre: 'MARTINEZ MARTINEZ LUIS MANUEL', labor: 'Alimentador', porcentajeCalidad: 100, porcentajeProceso: 100, porcentajeProducto: 100, metaCalidad: 90 },
-  { ano: 2026, semana: '2026-28', fecha: '15/07/2026', codigo: '1013', nombre: 'MARTINEZ MARTINEZ LUIS MANUEL', labor: 'Alimentador', porcentajeCalidad: 100, porcentajeProceso: 100, porcentajeProducto: 100, metaCalidad: 90 },
-  { ano: 2026, semana: '2026-28', fecha: '16/07/2026', codigo: '1013', nombre: 'MARTINEZ MARTINEZ LUIS MANUEL', labor: 'Alimentador', porcentajeCalidad: 100, porcentajeProceso: 100, porcentajeProducto: 100, metaCalidad: 90 },
-  { ano: 2026, semana: '2026-28', fecha: '17/07/2026', codigo: '1013', nombre: 'MARTINEZ MARTINEZ LUIS MANUEL', labor: 'Alimentador', porcentajeCalidad: 92, porcentajeProceso: 92, porcentajeProducto: 92, metaCalidad: 90 },
+  { ano: 2026, semana: '2026-28', fecha: '13/07/2026', codigo: '1013', nombre: 'MARTINEZ MARTINEZ LUIS MANUEL', labor: 'Alimentador', dia: 1, porcentajeCalidad: 100, porcentajeProceso: 100, porcentajeProducto: 100, metaCalidad: 90 },
+  { ano: 2026, semana: '2026-28', fecha: '14/07/2026', codigo: '1013', nombre: 'MARTINEZ MARTINEZ LUIS MANUEL', labor: 'Alimentador', dia: 2, porcentajeCalidad: 100, porcentajeProceso: 100, porcentajeProducto: 100, metaCalidad: 90 },
+  { ano: 2026, semana: '2026-28', fecha: '15/07/2026', codigo: '1013', nombre: 'MARTINEZ MARTINEZ LUIS MANUEL', labor: 'Alimentador', dia: 3, porcentajeCalidad: 100, porcentajeProceso: 100, porcentajeProducto: 100, metaCalidad: 90 },
+  { ano: 2026, semana: '2026-28', fecha: '16/07/2026', codigo: '1013', nombre: 'MARTINEZ MARTINEZ LUIS MANUEL', labor: 'Alimentador', dia: 4, porcentajeCalidad: 100, porcentajeProceso: 100, porcentajeProducto: 100, metaCalidad: 90 },
+  { ano: 2026, semana: '2026-28', fecha: '17/07/2026', codigo: '1013', nombre: 'MARTINEZ MARTINEZ LUIS MANUEL', labor: 'Alimentador', dia: 5, porcentajeCalidad: 92, porcentajeProceso: 92, porcentajeProducto: 92, metaCalidad: 90 },
 
   // Semana 2026-28
   { ano: 2026, semana: '2026-28', fecha: '14/07/2026', codigo: '1001', nombre: 'María Camila Rodríguez', labor: 'Clasificación Rosas', porcentajeCalidad: 95, porcentajeProceso: 96, porcentajeProducto: 94, metaCalidad: 90 }, // Sobresaliente

@@ -339,6 +339,7 @@ export default function App() {
             {activeTab === 'curva_aprendizaje' && (
               <CurvaAprendizaje
                 rendimientoData={activeRendimientoRaw}
+                consolidadoData={activeConsolidadoRaw}
                 semanasDisponibles={semanasDisponibles}
                 laboresDisponibles={laboresDisponibles}
               />
