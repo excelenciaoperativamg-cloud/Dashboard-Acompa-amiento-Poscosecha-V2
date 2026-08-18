@@ -307,7 +307,7 @@ export const CurvaAprendizaje: React.FC<CurvaAprendizajeProps> = ({
         }
       }
 
-      const val = item.porcentajeCalidad ?? item.porcentajeProceso ?? item.porcentajeProducto;
+      const val = item.porcentajeProceso ?? item.porcentajeProducto ?? item.porcentajeCalidad ?? item.porcentajeProcentaje;
       return val !== undefined && !isNaN(val);
     });
 
@@ -341,8 +341,12 @@ export const CurvaAprendizaje: React.FC<CurvaAprendizajeProps> = ({
     const grouped = new Map<
       string,
       {
+        totalProceso: number;
+        countProceso: number;
+        totalProducto: number;
+        countProducto: number;
         totalCalidad: number;
-        count: number;
+        countCalidad: number;
         items: EvaluacionCalidad[];
       }
     >();
@@ -353,36 +357,73 @@ export const CurvaAprendizaje: React.FC<CurvaAprendizajeProps> = ({
       if (!diaVal) return;
 
       const key = diaVal;
-      const valCalidad = item.porcentajeCalidad ?? item.porcentajeProceso ?? item.porcentajeProducto ?? 0;
 
       if (!grouped.has(key)) {
         grouped.set(key, {
+          totalProceso: 0,
+          countProceso: 0,
+          totalProducto: 0,
+          countProducto: 0,
           totalCalidad: 0,
-          count: 0,
+          countCalidad: 0,
           items: []
         });
       }
 
       const grp = grouped.get(key)!;
-      grp.totalCalidad += valCalidad;
-      grp.count += 1;
       grp.items.push(item);
+
+      // % Proceso
+      const valProceso = item.porcentajeProceso ?? item.porcentajeProcentaje;
+      if (valProceso !== undefined && !isNaN(valProceso)) {
+        grp.totalProceso += valProceso;
+        grp.countProceso += 1;
+      }
+
+      // % Producto
+      const valProducto = item.porcentajeProducto;
+      if (valProducto !== undefined && !isNaN(valProducto)) {
+        grp.totalProducto += valProducto;
+        grp.countProducto += 1;
+      }
+
+      // General Calidad
+      const valCalidad = item.porcentajeCalidad ?? valProceso ?? valProducto;
+      if (valCalidad !== undefined && !isNaN(valCalidad)) {
+        grp.totalCalidad += valCalidad;
+        grp.countCalidad += 1;
+      }
     });
 
     // Convert to sorted array
     const result = Array.from(grouped.entries()).map(([periodo, data]) => {
-      const promedioCalidad = Math.round((data.totalCalidad / data.count) * 10) / 10;
+      const promedioProceso = data.countProceso > 0
+        ? Math.round((data.totalProceso / data.countProceso) * 10) / 10
+        : undefined;
+
+      const promedioProducto = data.countProducto > 0
+        ? Math.round((data.totalProducto / data.countProducto) * 10) / 10
+        : undefined;
+
+      const promedioCalidad = data.countCalidad > 0
+        ? Math.round((data.totalCalidad / data.countCalidad) * 10) / 10
+        : (promedioProceso ?? 0);
+
       const promedioEsperado = 90; // Meta fija esperada de 90% para todos los días
       const brecha = Math.round((promedioCalidad - promedioEsperado) * 10) / 10;
       const cumplimiento = Math.round((promedioCalidad / promedioEsperado) * 100);
 
       return {
         periodo,
-        promedioCalidad,
         promedioEsperado,
+        promedioProceso,
+        promedioProducto,
+        promedioCalidad,
         brecha,
         cumplimiento,
-        evaluacionesCount: data.count
+        evaluacionesCount: data.items.length,
+        countProceso: data.countProceso,
+        countProducto: data.countProducto
       };
     });
 
@@ -397,28 +438,64 @@ export const CurvaAprendizaje: React.FC<CurvaAprendizajeProps> = ({
     return result;
   }, [consolidadoData, filteredData, rendimientoData, operarioFiltro, laborFiltro, semanaFiltro, fechaIngresoFiltro]);
 
+  // Check if there is valid Producto data across the filtered Calidad dataset
+  const hasProductoData = useMemo(() => {
+    return chartCalidadData.some(
+      (d) => d.promedioProducto !== undefined && !isNaN(d.promedioProducto)
+    );
+  }, [chartCalidadData]);
+
   // General KPI metrics for Calidad
   const globalCalidadKPIs = useMemo(() => {
     if (chartCalidadData.length === 0) {
       return {
         promedioCalidad: 0,
+        promedioProceso: 0,
+        promedioProducto: undefined as number | undefined,
         promedioEsperado: 90,
         brecha: 0,
-        totalEvaluaciones: 0
+        totalEvaluaciones: 0,
+        hasProducto: false
       };
     }
 
-    const totalCal = chartCalidadData.reduce((acc, curr) => acc + (curr.promedioCalidad * curr.evaluacionesCount), 0);
-    const count = chartCalidadData.reduce((acc, curr) => acc + curr.evaluacionesCount, 0);
-    const promedioCalidad = count > 0 ? Math.round((totalCal / count) * 10) / 10 : 0;
+    let totalProc = 0;
+    let countProc = 0;
+    let totalProd = 0;
+    let countProd = 0;
+    let totalCal = 0;
+    let countCal = 0;
+
+    chartCalidadData.forEach((curr) => {
+      if (curr.promedioProceso !== undefined && curr.countProceso) {
+        totalProc += curr.promedioProceso * curr.countProceso;
+        countProc += curr.countProceso;
+      }
+      if (curr.promedioProducto !== undefined && curr.countProducto) {
+        totalProd += curr.promedioProducto * curr.countProducto;
+        countProd += curr.countProducto;
+      }
+      if (curr.promedioCalidad !== undefined && curr.evaluacionesCount) {
+        totalCal += curr.promedioCalidad * curr.evaluacionesCount;
+        countCal += curr.evaluacionesCount;
+      }
+    });
+
+    const promedioProceso = countProc > 0 ? Math.round((totalProc / countProc) * 10) / 10 : 0;
+    const promedioProducto = countProd > 0 ? Math.round((totalProd / countProd) * 10) / 10 : undefined;
+    const promedioCalidad = countCal > 0 ? Math.round((totalCal / countCal) * 10) / 10 : promedioProceso;
     const promedioEsperado = 90;
     const brecha = Math.round((promedioCalidad - promedioEsperado) * 10) / 10;
+    const totalEvaluaciones = chartCalidadData.reduce((acc, curr) => acc + curr.evaluacionesCount, 0);
 
     return {
       promedioCalidad,
+      promedioProceso,
+      promedioProducto,
       promedioEsperado,
       brecha,
-      totalEvaluaciones: count
+      totalEvaluaciones,
+      hasProducto: countProd > 0
     };
   }, [chartCalidadData]);
 
@@ -597,21 +674,25 @@ export const CurvaAprendizaje: React.FC<CurvaAprendizajeProps> = ({
 
         <div className="bg-white p-3 rounded-xl border border-stone-200 border-t-3 border-t-emerald-600 shadow-2xs">
           <div className="flex items-center justify-between text-stone-500 mb-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700">Prom. Calidad Real</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700">Prom. Proceso Real</span>
             <ShieldCheck className="w-4 h-4 text-emerald-600" />
           </div>
           <div className="text-xl font-bold font-serif text-emerald-700">
-            {globalCalidadKPIs.promedioCalidad > 0 ? `${globalCalidadKPIs.promedioCalidad}%` : 'N/D'}
+            {globalCalidadKPIs.promedioProceso > 0 ? `${globalCalidadKPIs.promedioProceso}%` : 'N/D'}
           </div>
-          <p className="text-[10px] text-stone-500 mt-0.5">Hoja Consolidado</p>
+          <p className="text-[10px] text-stone-500 mt-0.5">
+            {globalCalidadKPIs.hasProducto && globalCalidadKPIs.promedioProducto !== undefined
+              ? `Prod: ${globalCalidadKPIs.promedioProducto}%`
+              : 'Hoja Consolidado'}
+          </p>
         </div>
 
-        <div className="bg-white p-3 rounded-xl border border-stone-200 border-t-3 border-t-blue-500 shadow-2xs">
+        <div className="bg-white p-3 rounded-xl border border-stone-200 border-t-3 border-t-red-600 shadow-2xs">
           <div className="flex items-center justify-between text-stone-500 mb-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-blue-700">Meta Calidad</span>
-            <Target className="w-4 h-4 text-blue-500" />
+            <span className="text-[10px] font-bold uppercase tracking-wider text-red-700">Meta Calidad</span>
+            <Target className="w-4 h-4 text-red-600" />
           </div>
-          <div className="text-xl font-bold font-serif text-blue-700">
+          <div className="text-xl font-bold font-serif text-red-700">
             90.0%
           </div>
           <p className="text-[10px] text-stone-500 mt-0.5">
@@ -642,226 +723,262 @@ export const CurvaAprendizaje: React.FC<CurvaAprendizajeProps> = ({
         <div className="lg:col-span-3 space-y-4">
           
           {/* Chart 1: Rendimiento */}
-          <div className="bg-white p-5 rounded-xl border border-stone-200 shadow-xs flex flex-col justify-between">
-            <div className="flex items-center justify-center mb-2 pb-2 border-b border-stone-100">
-              <h3 className="text-xl font-extrabold uppercase tracking-tight text-[#0a2958] font-sans text-center">
-                Rendimiento
-              </h3>
+          <div className="bg-white rounded-xl border border-stone-200 shadow-xs overflow-hidden flex flex-col justify-between">
+            <div className="bg-[#3b679b] text-white py-2 px-4 text-center font-bold text-sm tracking-wide shadow-xs">
+              Rendimiento
             </div>
 
-            {chartData.length === 0 ? (
-              <div className="py-24 text-center text-stone-400 text-xs">
-                No se encontraron registros de rendimiento para los filtros seleccionados.
-              </div>
-            ) : (
-              <div className="h-88 w-full pt-4">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart
-                    data={chartData}
-                    margin={{ top: 25, right: 30, left: 10, bottom: 10 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                    <XAxis
-                      dataKey="periodo"
-                      stroke="#525252"
-                      tick={{ fontSize: 11, fontWeight: 600 }}
-                      padding={{ left: 25, right: 25 }}
-                    />
-                    <YAxis
-                      stroke="#525252"
-                      tick={{ fontSize: 11 }}
-                      domain={[0, 'dataMax + 150']}
-                    />
-                    <Tooltip
-                      content={({ active, payload, label }) => {
-                        if (active && payload && payload.length) {
-                          const data = payload[0].payload;
-                          const diff = Math.round((data.promedioRendimiento - data.promedioEsperado) * 10) / 10;
-                          return (
-                            <div className="bg-stone-900 text-white p-3 rounded-lg text-xs shadow-lg border border-stone-700 space-y-1.5">
-                              <p className="font-bold border-b border-stone-700 pb-1 text-stone-200">
-                                {agruparPor === 'dia' ? `Día ${label}` : `Periodo: ${label}`}
-                              </p>
-                              <div className="flex items-center justify-between gap-4 text-blue-400">
-                                <span>Promedio de Rendimiento esperado:</span>
-                                <span className="font-bold">{data.promedioEsperado}</span>
-                              </div>
-                              <div className="flex items-center justify-between gap-4 text-orange-400">
-                                <span>Promedio de Rendimiento:</span>
-                                <span className="font-bold">{data.promedioRendimiento}</span>
-                              </div>
-                              <div className="pt-1 border-t border-stone-800 flex items-center justify-between gap-4 text-stone-300">
-                                <span>Cumplimiento:</span>
-                                <span className={`font-bold ${data.cumplimiento >= 100 ? 'text-emerald-400' : 'text-amber-400'}`}>
-                                  {data.cumplimiento}% ({diff >= 0 ? `+${diff}` : diff})
-                                </span>
-                              </div>
-                              <div className="text-[10px] text-stone-400 pt-0.5">
-                                Registros: {data.evaluacionesCount}
-                              </div>
-                            </div>
-                          );
-                        }
-                        return null;
-                      }}
-                    />
-                    <Legend
-                      verticalAlign="bottom"
-                      height={40}
-                      formatter={(value) => (
-                        <span className="text-xs font-semibold text-stone-700 mr-4">{value}</span>
-                      )}
-                    />
-                    
-                    {/* Line 1: Promedio de Rendimiento esperado (Azul) */}
-                    <Line
-                      type="monotone"
-                      dataKey="promedioEsperado"
-                      name="Promedio de Rendimiento esperado"
-                      stroke="#2563eb"
-                      strokeWidth={2.5}
-                      dot={{ r: 5, fill: '#2563eb', stroke: '#ffffff', strokeWidth: 1.5 }}
-                      activeDot={{ r: 7 }}
+            <div className="p-4 flex-1 flex flex-col justify-between">
+              {chartData.length === 0 ? (
+                <div className="py-24 text-center text-stone-400 text-xs">
+                  No se encontraron registros de rendimiento para los filtros seleccionados.
+                </div>
+              ) : (
+                <div className="h-88 w-full pt-2">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart
+                      data={chartData}
+                      margin={{ top: 25, right: 30, left: 10, bottom: 10 }}
                     >
-                      <LabelList dataKey="promedioEsperado" position="top" offset={10} fill="#1d4ed8" fontSize={10} fontWeight={700} />
-                    </Line>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                      <XAxis
+                        dataKey="periodo"
+                        stroke="#525252"
+                        tick={{ fontSize: 11, fontWeight: 600 }}
+                        padding={{ left: 25, right: 25 }}
+                      />
+                      <YAxis
+                        stroke="#525252"
+                        tick={{ fontSize: 11 }}
+                        domain={[0, 'dataMax + 150']}
+                      />
+                      <Tooltip
+                        content={({ active, payload, label }) => {
+                          if (active && payload && payload.length) {
+                            const data = payload[0].payload;
+                            const diff = Math.round((data.promedioRendimiento - data.promedioEsperado) * 10) / 10;
+                            return (
+                              <div className="bg-stone-900 text-white p-3 rounded-lg text-xs shadow-lg border border-stone-700 space-y-1.5">
+                                <p className="font-bold border-b border-stone-700 pb-1 text-stone-200">
+                                  {agruparPor === 'dia' ? `Día ${label}` : `Periodo: ${label}`}
+                                </p>
+                                <div className="flex items-center justify-between gap-4 text-blue-400">
+                                  <span>Promedio de Rendimiento esperado:</span>
+                                  <span className="font-bold">{data.promedioEsperado}</span>
+                                </div>
+                                <div className="flex items-center justify-between gap-4 text-orange-400">
+                                  <span>Promedio de Rendimiento:</span>
+                                  <span className="font-bold">{data.promedioRendimiento}</span>
+                                </div>
+                                <div className="pt-1 border-t border-stone-800 flex items-center justify-between gap-4 text-stone-300">
+                                  <span>Cumplimiento:</span>
+                                  <span className={`font-bold ${data.cumplimiento >= 100 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                                    {data.cumplimiento}% ({diff >= 0 ? `+${diff}` : diff})
+                                  </span>
+                                </div>
+                                <div className="text-[10px] text-stone-400 pt-0.5">
+                                  Registros: {data.evaluacionesCount}
+                                </div>
+                              </div>
+                            );
+                          }
+                          return null;
+                        }}
+                      />
+                      <Legend
+                        verticalAlign="bottom"
+                        height={40}
+                        formatter={(value) => (
+                          <span className="text-xs font-semibold text-stone-700 mr-4">{value}</span>
+                        )}
+                      />
+                      
+                      {/* Line 1: Promedio de Rendimiento esperado (Azul) */}
+                      <Line
+                        type="monotone"
+                        dataKey="promedioEsperado"
+                        name="Promedio de Rendimiento esperado"
+                        stroke="#2563eb"
+                        strokeWidth={2.5}
+                        dot={{ r: 5, fill: '#2563eb', stroke: '#ffffff', strokeWidth: 1.5 }}
+                        activeDot={{ r: 7 }}
+                      >
+                        <LabelList dataKey="promedioEsperado" position="top" offset={10} fill="#1d4ed8" fontSize={10} fontWeight={700} />
+                      </Line>
 
-                    {/* Line 2: Promedio de Rendimiento (Naranja / Marrón) */}
-                    <Line
-                      type="monotone"
-                      dataKey="promedioRendimiento"
-                      name="Promedio de Rendimiento"
-                      stroke="#ea580c"
-                      strokeWidth={2.5}
-                      dot={{ r: 5, fill: '#ea580c', stroke: '#ffffff', strokeWidth: 1.5 }}
-                      activeDot={{ r: 7 }}
-                    >
-                      <LabelList dataKey="promedioRendimiento" position="top" offset={10} fill="#c2410c" fontSize={10} fontWeight={700} />
-                    </Line>
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            )}
+                      {/* Line 2: Promedio de Rendimiento (Naranja / Marrón) */}
+                      <Line
+                        type="monotone"
+                        dataKey="promedioRendimiento"
+                        name="Promedio de Rendimiento"
+                        stroke="#ea580c"
+                        strokeWidth={2.5}
+                        dot={{ r: 5, fill: '#ea580c', stroke: '#ffffff', strokeWidth: 1.5 }}
+                        activeDot={{ r: 7 }}
+                      >
+                        <LabelList dataKey="promedioRendimiento" position="top" offset={10} fill="#c2410c" fontSize={10} fontWeight={700} />
+                      </Line>
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Chart 2: Calidad (Datos de la hoja Consolidado) */}
-          <div className="bg-white p-5 rounded-xl border border-stone-200 shadow-xs flex flex-col justify-between">
-            <div className="flex items-center justify-center mb-2 pb-2 border-b border-stone-100">
-              <h3 className="text-xl font-extrabold uppercase tracking-tight text-[#0a2958] font-sans text-center">
-                Calidad
-              </h3>
+          <div className="bg-white rounded-xl border border-stone-200 shadow-xs overflow-hidden flex flex-col justify-between">
+            <div className="bg-[#3b679b] text-white py-2 px-4 text-center font-bold text-sm tracking-wide shadow-xs">
+              Calidad
             </div>
 
-            {chartCalidadData.length === 0 ? (
-              <div className="py-20 text-center text-stone-400 text-xs">
-                No se encontraron registros de calidad en la hoja Consolidado para los filtros seleccionados.
-              </div>
-            ) : (
-              <div className="h-88 w-full pt-4">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart
-                    data={chartCalidadData}
-                    margin={{ top: 25, right: 30, left: 10, bottom: 10 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                    <XAxis
-                      dataKey="periodo"
-                      stroke="#525252"
-                      tick={{ fontSize: 11, fontWeight: 600 }}
-                      padding={{ left: 25, right: 25 }}
-                    />
-                    <YAxis
-                      stroke="#525252"
-                      tick={{ fontSize: 11 }}
-                      domain={[60, 105]}
-                      tickFormatter={(value) => `${value}%`}
-                    />
-                    <Tooltip
-                      content={({ active, payload, label }) => {
-                        if (active && payload && payload.length) {
-                          const data = payload[0].payload;
-                          const diff = Math.round((data.promedioCalidad - data.promedioEsperado) * 10) / 10;
-                          return (
-                            <div className="bg-stone-900 text-white p-3 rounded-lg text-xs shadow-lg border border-stone-700 space-y-1.5">
-                              <p className="font-bold border-b border-stone-700 pb-1 text-stone-200">
-                                {`Día ${label}`}
-                              </p>
-                              <div className="flex items-center justify-between gap-4 text-blue-400">
-                                <span>Promedio de Calidad esperado:</span>
-                                <span className="font-bold">90%</span>
-                              </div>
-                              <div className="flex items-center justify-between gap-4 text-emerald-400">
-                                <span>Promedio Calidad:</span>
-                                <span className="font-bold">{data.promedioCalidad}%</span>
-                              </div>
-                              <div className="pt-1 border-t border-stone-800 flex items-center justify-between gap-4 text-stone-300">
-                                <span>Brecha vs Meta (90%):</span>
-                                <span className={`font-bold ${data.promedioCalidad >= 90 ? 'text-emerald-400' : 'text-amber-400'}`}>
-                                  {diff >= 0 ? `+${diff}% (Cumple)` : `${diff}% (Por mejorar)`}
-                                </span>
-                              </div>
-                              <div className="text-[10px] text-stone-400 pt-0.5">
-                                Evaluaciones de Calidad: {data.evaluacionesCount}
-                              </div>
-                            </div>
-                          );
-                        }
-                        return null;
-                      }}
-                    />
-                    <Legend
-                      verticalAlign="bottom"
-                      height={40}
-                      formatter={(value) => (
-                        <span className="text-xs font-semibold text-stone-700 mr-4">{value}</span>
-                      )}
-                    />
-                    
-                    {/* Line 1: Promedio de Calidad esperado (Azul - 90% constante) */}
-                    <Line
-                      type="monotone"
-                      dataKey="promedioEsperado"
-                      name="Promedio de Calidad esperado"
-                      stroke="#2563eb"
-                      strokeWidth={2.5}
-                      dot={{ r: 5, fill: '#2563eb', stroke: '#ffffff', strokeWidth: 1.5 }}
-                      activeDot={{ r: 7 }}
+            <div className="p-4 flex-1 flex flex-col justify-between">
+              {chartCalidadData.length === 0 ? (
+                <div className="py-20 text-center text-stone-400 text-xs">
+                  No se encontraron registros de calidad en la hoja Consolidado para los filtros seleccionados.
+                </div>
+              ) : (
+                <div className="h-88 w-full pt-2">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart
+                      data={chartCalidadData}
+                      margin={{ top: 25, right: 30, left: 10, bottom: 10 }}
                     >
-                      <LabelList
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                      <XAxis
+                        dataKey="periodo"
+                        stroke="#525252"
+                        tick={{ fontSize: 11, fontWeight: 600 }}
+                        padding={{ left: 25, right: 25 }}
+                      />
+                      <YAxis
+                        stroke="#525252"
+                        tick={{ fontSize: 11 }}
+                        domain={[60, 105]}
+                        tickFormatter={(value) => `${value}%`}
+                      />
+                      <Tooltip
+                        content={({ active, payload, label }) => {
+                          if (active && payload && payload.length) {
+                            const data = payload[0].payload;
+                            const procDiff = data.promedioProceso !== undefined ? Math.round((data.promedioProceso - 90) * 10) / 10 : undefined;
+                            return (
+                              <div className="bg-stone-900 text-white p-3 rounded-lg text-xs shadow-lg border border-stone-700 space-y-1.5">
+                                <p className="font-bold border-b border-stone-700 pb-1 text-stone-200">
+                                  {`Día ${label}`}
+                                </p>
+                                <div className="flex items-center justify-between gap-4 text-red-400">
+                                  <span>Promedio de Calidad esperado:</span>
+                                  <span className="font-bold">90%</span>
+                                </div>
+                                {data.promedioProceso !== undefined && (
+                                  <div className="flex items-center justify-between gap-4 text-emerald-400">
+                                    <span>Promedio Proceso:</span>
+                                    <span className="font-bold">{data.promedioProceso}%</span>
+                                  </div>
+                                )}
+                                {data.promedioProducto !== undefined && (
+                                  <div className="flex items-center justify-between gap-4 text-purple-400">
+                                    <span>Promedio Producto:</span>
+                                    <span className="font-bold">{data.promedioProducto}%</span>
+                                  </div>
+                                )}
+                                {procDiff !== undefined && (
+                                  <div className="pt-1 border-t border-stone-800 flex items-center justify-between gap-4 text-stone-300">
+                                    <span>Brecha Proceso vs Meta (90%):</span>
+                                    <span className={`font-bold ${procDiff >= 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                                      {procDiff >= 0 ? `+${procDiff}% (Cumple)` : `${procDiff}% (Por mejorar)`}
+                                    </span>
+                                  </div>
+                                )}
+                                <div className="text-[10px] text-stone-400 pt-0.5 border-t border-stone-800/60 flex justify-between">
+                                  <span>Evaluaciones:</span>
+                                  <span className="font-medium text-stone-300">{data.evaluacionesCount}</span>
+                                </div>
+                              </div>
+                            );
+                          }
+                          return null;
+                        }}
+                      />
+                      <Legend
+                        verticalAlign="bottom"
+                        height={40}
+                        formatter={(value) => (
+                          <span className="text-xs font-semibold text-stone-700 mr-4">{value}</span>
+                        )}
+                      />
+                      
+                      {/* Line 1: Promedio de Calidad esperado (Rojo - 90% constante) */}
+                      <Line
+                        type="monotone"
                         dataKey="promedioEsperado"
-                        position="top"
-                        offset={10}
-                        fill="#1d4ed8"
-                        fontSize={10}
-                        fontWeight={700}
-                        formatter={(val: any) => `${val}%`}
-                      />
-                    </Line>
+                        name="Promedio de Calidad esperado"
+                        stroke="#dc2626"
+                        strokeWidth={2.5}
+                        dot={{ r: 5, fill: '#dc2626', stroke: '#ffffff', strokeWidth: 1.5 }}
+                        activeDot={{ r: 7 }}
+                      >
+                        <LabelList
+                          dataKey="promedioEsperado"
+                          position="top"
+                          offset={10}
+                          fill="#b91c1c"
+                          fontSize={10}
+                          fontWeight={700}
+                          formatter={(val: any) => (val !== undefined && val !== null && !isNaN(val) ? `${val}%` : '')}
+                        />
+                      </Line>
 
-                    {/* Line 2: Promedio Calidad (Verde) */}
-                    <Line
-                      type="monotone"
-                      dataKey="promedioCalidad"
-                      name="Promedio Calidad"
-                      stroke="#16a34a"
-                      strokeWidth={2.5}
-                      dot={{ r: 5, fill: '#16a34a', stroke: '#ffffff', strokeWidth: 1.5 }}
-                      activeDot={{ r: 7 }}
-                    >
-                      <LabelList
-                        dataKey="promedioCalidad"
-                        position="top"
-                        offset={10}
-                        fill="#15803d"
-                        fontSize={10}
-                        fontWeight={700}
-                        formatter={(val: any) => `${val}%`}
-                      />
-                    </Line>
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            )}
+                      {/* Line 2: Promedio Proceso (Verde) */}
+                      <Line
+                        type="monotone"
+                        dataKey="promedioProceso"
+                        name="Promedio Proceso"
+                        stroke="#16a34a"
+                        strokeWidth={2.5}
+                        connectNulls={true}
+                        dot={{ r: 5, fill: '#16a34a', stroke: '#ffffff', strokeWidth: 1.5 }}
+                        activeDot={{ r: 7 }}
+                      >
+                        <LabelList
+                          dataKey="promedioProceso"
+                          position="top"
+                          offset={10}
+                          fill="#15803d"
+                          fontSize={10}
+                          fontWeight={700}
+                          formatter={(val: any) => (val !== undefined && val !== null && !isNaN(val) ? `${val}%` : '')}
+                        />
+                      </Line>
+
+                      {/* Line 3: Promedio Producto (Púrpura / Violeta - Si aplica) */}
+                      {hasProductoData && (
+                        <Line
+                          type="monotone"
+                          dataKey="promedioProducto"
+                          name="Promedio Producto"
+                          stroke="#7c3aed"
+                          strokeWidth={2.5}
+                          connectNulls={true}
+                          dot={{ r: 5, fill: '#7c3aed', stroke: '#ffffff', strokeWidth: 1.5 }}
+                          activeDot={{ r: 7 }}
+                        >
+                          <LabelList
+                            dataKey="promedioProducto"
+                            position="bottom"
+                            offset={10}
+                            fill="#6d28d9"
+                            fontSize={10}
+                            fontWeight={700}
+                            formatter={(val: any) => (val !== undefined && val !== null && !isNaN(val) ? `${val}%` : '')}
+                          />
+                        </Line>
+                      )}
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </div>
           </div>
 
         </div>
@@ -871,15 +988,15 @@ export const CurvaAprendizaje: React.FC<CurvaAprendizajeProps> = ({
           
           {/* Slicer 1: Fecha de ingreso */}
           <div className="bg-white rounded-xl border border-stone-200 shadow-xs overflow-hidden">
-            <div className="bg-[#0a2958] text-white px-3 py-2 flex items-center justify-between">
+            <div className="bg-[#3b679b] text-white px-3 py-2 flex items-center justify-between">
               <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider">
-                <Filter className="w-3.5 h-3.5 text-blue-200" />
+                <Filter className="w-3.5 h-3.5 text-blue-100" />
                 <span>Fecha de ingreso</span>
               </div>
               {fechaIngresoFiltro !== 'TODAS' && (
                 <button
                   onClick={() => setFechaIngresoFiltro('TODAS')}
-                  className="text-[10px] text-blue-200 hover:text-white underline cursor-pointer font-medium"
+                  className="text-[10px] text-blue-100 hover:text-white underline cursor-pointer font-medium"
                 >
                   Borrar
                 </button>
@@ -890,12 +1007,12 @@ export const CurvaAprendizaje: React.FC<CurvaAprendizajeProps> = ({
                 onClick={() => setFechaIngresoFiltro('TODAS')}
                 className={`w-full text-left px-2.5 py-1.5 rounded text-xs font-medium transition-colors flex items-center justify-between cursor-pointer ${
                   fechaIngresoFiltro === 'TODAS'
-                    ? 'bg-blue-50 text-[#0a2958] font-bold border-l-3 border-[#0a2958]'
+                    ? 'bg-blue-50 text-[#3b679b] font-bold border-l-3 border-[#3b679b]'
                     : 'text-stone-700 hover:bg-stone-50'
                 }`}
               >
                 <span>(Todas las fechas)</span>
-                {fechaIngresoFiltro === 'TODAS' && <CheckCircle2 className="w-3.5 h-3.5 text-[#0a2958]" />}
+                {fechaIngresoFiltro === 'TODAS' && <CheckCircle2 className="w-3.5 h-3.5 text-[#3b679b]" />}
               </button>
               {opcionesFechaIngreso.map((fecha) => {
                 const isSelected = fechaIngresoFiltro === fecha;
@@ -905,12 +1022,12 @@ export const CurvaAprendizaje: React.FC<CurvaAprendizajeProps> = ({
                     onClick={() => setFechaIngresoFiltro(isSelected ? 'TODAS' : fecha)}
                     className={`w-full text-left px-2.5 py-1.5 rounded text-xs transition-colors flex items-center justify-between cursor-pointer ${
                       isSelected
-                        ? 'bg-blue-50 text-[#0a2958] font-bold border-l-3 border-[#0a2958]'
+                        ? 'bg-blue-50 text-[#3b679b] font-bold border-l-3 border-[#3b679b]'
                         : 'text-stone-700 hover:bg-stone-50'
                     }`}
                   >
                     <span>{fecha}</span>
-                    {isSelected && <CheckCircle2 className="w-3.5 h-3.5 text-[#0a2958]" />}
+                    {isSelected && <CheckCircle2 className="w-3.5 h-3.5 text-[#3b679b]" />}
                   </button>
                 );
               })}
@@ -919,15 +1036,15 @@ export const CurvaAprendizaje: React.FC<CurvaAprendizajeProps> = ({
 
           {/* Slicer 2: Nombre */}
           <div className="bg-white rounded-xl border border-stone-200 shadow-xs overflow-hidden">
-            <div className="bg-[#0a2958] text-white px-3 py-2 flex items-center justify-between">
+            <div className="bg-[#3b679b] text-white px-3 py-2 flex items-center justify-between">
               <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider">
-                <Filter className="w-3.5 h-3.5 text-blue-200" />
+                <Filter className="w-3.5 h-3.5 text-blue-100" />
                 <span>Nombre</span>
               </div>
               {operarioFiltro !== 'TODOS' && (
                 <button
                   onClick={() => setOperarioFiltro('TODOS')}
-                  className="text-[10px] text-blue-200 hover:text-white underline cursor-pointer font-medium"
+                  className="text-[10px] text-blue-100 hover:text-white underline cursor-pointer font-medium"
                 >
                   Borrar
                 </button>
@@ -943,7 +1060,7 @@ export const CurvaAprendizaje: React.FC<CurvaAprendizajeProps> = ({
                   placeholder="Buscar por nombre..."
                   value={operarioBusqueda}
                   onChange={(e) => setOperarioBusqueda(e.target.value)}
-                  className="w-full text-xs pl-8 pr-2 py-1.5 bg-white border border-stone-200 rounded-md focus:outline-none focus:ring-1 focus:ring-[#0a2958]"
+                  className="w-full text-xs pl-8 pr-2 py-1.5 bg-white border border-stone-200 rounded-md focus:outline-none focus:ring-1 focus:ring-[#3b679b]"
                 />
               </div>
             </div>
@@ -953,12 +1070,12 @@ export const CurvaAprendizaje: React.FC<CurvaAprendizajeProps> = ({
                 onClick={() => setOperarioFiltro('TODOS')}
                 className={`w-full text-left px-2.5 py-1.5 rounded text-xs font-medium transition-colors flex items-center justify-between cursor-pointer ${
                   operarioFiltro === 'TODOS'
-                    ? 'bg-blue-50 text-[#0a2958] font-bold border-l-3 border-[#0a2958]'
+                    ? 'bg-blue-50 text-[#3b679b] font-bold border-l-3 border-[#3b679b]'
                     : 'text-stone-700 hover:bg-stone-50'
                 }`}
               >
                 <span>(Todos los nombres)</span>
-                {operarioFiltro === 'TODOS' && <CheckCircle2 className="w-3.5 h-3.5 text-[#0a2958]" />}
+                {operarioFiltro === 'TODOS' && <CheckCircle2 className="w-3.5 h-3.5 text-[#3b679b]" />}
               </button>
               {operariosFiltradosBusqueda.map((op) => {
                 const isSelected = operarioFiltro === op.nombre;
@@ -975,12 +1092,12 @@ export const CurvaAprendizaje: React.FC<CurvaAprendizajeProps> = ({
                     }}
                     className={`w-full text-left px-2.5 py-1.5 rounded text-xs transition-colors flex items-center justify-between cursor-pointer ${
                       isSelected
-                        ? 'bg-blue-50 text-[#0a2958] font-bold border-l-3 border-[#0a2958]'
+                        ? 'bg-blue-50 text-[#3b679b] font-bold border-l-3 border-[#3b679b]'
                         : 'text-stone-700 hover:bg-stone-50'
                     }`}
                   >
                     <span className="truncate pr-1">{op.nombre}</span>
-                    {isSelected && <CheckCircle2 className="w-3.5 h-3.5 text-[#0a2958] shrink-0" />}
+                    {isSelected && <CheckCircle2 className="w-3.5 h-3.5 text-[#3b679b] shrink-0" />}
                   </button>
                 );
               })}
