@@ -97,7 +97,7 @@ export function mapRendimientoRows(rows: any[]): EvaluacionRendimiento[] {
     const rawNuevoAntiguo = getValGeneric(['nuevo/antiguo', 'nuevo_antiguo', 'nuevo o antiguo', 'condicion', 'clasificacion', 'antiguedad', 'antigued', 'nuevo']);
     const rawFechaIngreso = getValGeneric(['fecha de ingreso', 'fecha_ingreso', 'f.ingreso', 'f. ingreso', 'fingreso', 'ingreso']);
     const rawDia = getValGeneric(['dia', 'día']);
-    const rawProceso = getValGeneric(['proceso', 'proc']);
+    const rawProceso = getValGeneric(['proceso', 'proc', 'linea', 'línea', 'area', 'área', 'banda', 'modulo', 'módulo', 'puesto', 'estacion']);
     const rawEntrenador = getValGeneric(['entrenador', 'formador', 'instructor']);
     const rawRegistro = getValGeneric(['registro']);
 
@@ -195,7 +195,44 @@ export function mapConsolidadoRows(rows: any[]): EvaluacionCalidad[] {
     };
     const diaKey = findDiaKey();
     const rawDia = diaKey ? row[diaKey] : getValGeneric(['dia', 'dias', 'dia evaluacion', 'dia de curva', 'dia curva', 'n dia']);
-    const rawProceso = getValGeneric(['proceso', 'linea', 'area']);
+
+    // Búsqueda específica para la columna de texto 'Proceso' en la hoja Consolidado
+    const findProcesoKey = (): string | undefined => {
+      const cleanKeys = keys.map(k => ({ original: k, clean: cleanHeader(k) }));
+      
+      // 1. Coincidencia exacta para 'proceso' o 'proc'
+      const exactProceso = cleanKeys.find(ck => ck.clean === 'proceso' || ck.clean === 'proc');
+      if (exactProceso) return exactProceso.original;
+
+      // 2. Coincidencias exactas para otros alias
+      const exactAliases = ['linea', 'lineas', 'area', 'banda', 'modulo', 'puesto', 'estacion'];
+      for (const al of exactAliases) {
+        const found = cleanKeys.find(ck => ck.clean === al);
+        if (found) return found.original;
+      }
+
+      // 3. Coincidencia parcial que NO sea porcentaje, métrica ni meta
+      const partial = cleanKeys.find(ck => {
+        if (
+          ck.clean.startsWith('%') ||
+          ck.clean.includes('%') ||
+          ck.clean.includes('porcentaje') ||
+          ck.clean.includes('pct') ||
+          ck.clean.includes('meta') ||
+          ck.clean.includes('objetivo') ||
+          ck.clean.startsWith('id_') ||
+          ck.clean === 'llave' ||
+          ck.clean === 'labor'
+        ) {
+          return false;
+        }
+        return ['proceso', 'proc', 'linea', 'area', 'banda', 'modulo', 'puesto', 'estacion'].some(p => ck.clean.includes(p));
+      });
+      return partial ? partial.original : undefined;
+    };
+
+    const procesoKey = findProcesoKey();
+    const rawProceso = procesoKey ? row[procesoKey] : getValGeneric(['proceso', 'proc', 'linea', 'línea', 'area', 'área', 'banda', 'modulo', 'módulo', 'puesto', 'estacion']);
     const rawEntrenador = getValGeneric(['entrenador', 'formador', 'capacitador', 'supervisor']);
     const rawRegistro = getValGeneric(['registro', 'tipo registro', 'origen']);
 

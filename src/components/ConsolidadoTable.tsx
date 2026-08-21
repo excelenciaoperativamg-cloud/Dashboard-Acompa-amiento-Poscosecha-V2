@@ -3,6 +3,7 @@ import { ChevronDown, ChevronRight, AlertTriangle, ArrowUpDown, FileSpreadsheet,
 import * as XLSX from 'xlsx';
 import { ConsolidadoPriorizacion, Calificacion } from '../types';
 import { LaborMultiSelect } from './LaborMultiSelect';
+import { ProcesoMultiSelect } from './ProcesoMultiSelect';
 
 interface ConsolidadoTableProps {
   data: ConsolidadoPriorizacion[];
@@ -10,6 +11,9 @@ interface ConsolidadoTableProps {
   laboresDisponibles?: string[];
   laboresSeleccionadas?: string[];
   onSelectLabores?: (labores: string[]) => void;
+  procesosDisponibles?: string[];
+  procesosSeleccionados?: string[];
+  onSelectProcesos?: (procesos: string[]) => void;
 }
 
 export const ConsolidadoTable: React.FC<ConsolidadoTableProps> = ({
@@ -17,7 +21,10 @@ export const ConsolidadoTable: React.FC<ConsolidadoTableProps> = ({
   semanaSeleccionada,
   laboresDisponibles = [],
   laboresSeleccionadas = [],
-  onSelectLabores
+  onSelectLabores,
+  procesosDisponibles = [],
+  procesosSeleccionados = [],
+  onSelectProcesos
 }) => {
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
   const [sortField, setSortField] = useState<keyof ConsolidadoPriorizacion>('nivelPrioridad');
@@ -251,10 +258,10 @@ export const ConsolidadoTable: React.FC<ConsolidadoTableProps> = ({
   };
 
   return (
-    <div className="bg-white rounded-xl border border-stone-200 shadow-xs overflow-hidden mb-8">
+    <div className="bg-white rounded-xl border border-stone-200 shadow-xs overflow-visible relative mb-8">
       
       {/* Table Header Controls */}
-      <div className="p-4 bg-[#0a2958] text-white border-b border-[#0f3875] flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+      <div className="p-4 bg-[#0a2958] text-white border-b border-[#0f3875] rounded-t-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-3 overflow-visible relative z-20">
         <div>
           <h2 className="text-lg font-serif font-medium text-white flex items-center gap-2">
             Consolidado de Priorización de Acompañamiento
@@ -266,8 +273,8 @@ export const ConsolidadoTable: React.FC<ConsolidadoTableProps> = ({
 
         <div className="flex flex-wrap items-center gap-2">
           {/* Labor multi-select filter inside table bar if available */}
-          {onSelectLabores && laboresDisponibles.length > 0 && (
-            <div className="w-56">
+          {onSelectLabores && (
+            <div className="w-52">
               <LaborMultiSelect
                 laboresDisponibles={laboresDisponibles}
                 laboresSeleccionadas={laboresSeleccionadas}
@@ -277,10 +284,22 @@ export const ConsolidadoTable: React.FC<ConsolidadoTableProps> = ({
             </div>
           )}
 
+          {/* Proceso multi-select filter inside table bar if available */}
+          {onSelectProcesos && (
+            <div className="w-52">
+              <ProcesoMultiSelect
+                procesosDisponibles={procesosDisponibles}
+                procesosSeleccionados={procesosSeleccionados}
+                onChange={onSelectProcesos}
+                darkTheme={true}
+              />
+            </div>
+          )}
+
           <button
             id="btn-export-excel"
             onClick={exportExcel}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-medium bg-[#144287] hover:bg-[#1a50a3] text-white transition-colors border border-blue-400/30 shadow-xs"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-medium bg-[#144287] hover:bg-[#1a50a3] text-white transition-colors border border-blue-400/30 shadow-xs cursor-pointer"
           >
             <FileSpreadsheet className="w-3.5 h-3.5" />
             Exportar Excel (.xlsx)
@@ -288,7 +307,7 @@ export const ConsolidadoTable: React.FC<ConsolidadoTableProps> = ({
           <button
             id="btn-print-report"
             onClick={handlePrint}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-medium bg-[#0e336b] hover:bg-[#154287] text-blue-100 border border-blue-800 transition-colors"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-medium bg-[#0e336b] hover:bg-[#154287] text-blue-100 border border-blue-800 transition-colors cursor-pointer"
           >
             <Printer className="w-3.5 h-3.5" />
             Imprimir

@@ -371,6 +371,11 @@ export function consolidarPriorizacion(
       fechaFinal = formatFechaFallback(group.semana);
     }
 
+    // Tomar dato de PROCESO EXCLUSIVAMENTE de la hoja Consolidado (calidades)
+    const procesoDetectado =
+      group.calidades.find((c) => c.proceso && c.proceso.trim() !== '')?.proceso?.trim() ||
+      '';
+
     resultados.push({
       id: key,
       semana: group.semana,
@@ -378,6 +383,7 @@ export function consolidarPriorizacion(
       codigo: group.codigo,
       nombre: group.nombre,
       labor: group.labor,
+      proceso: procesoDetectado,
       rendimiento: promedioRendimiento,
       metaRendimiento,
       minimoRendimiento,

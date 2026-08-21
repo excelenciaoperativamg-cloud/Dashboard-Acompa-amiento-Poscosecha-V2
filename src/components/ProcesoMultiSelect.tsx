@@ -1,16 +1,16 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Briefcase, ChevronDown, Check, X, Search } from 'lucide-react';
+import { Layers, ChevronDown, Check, X, Search } from 'lucide-react';
 
-interface LaborMultiSelectProps {
-  laboresDisponibles: string[];
-  laboresSeleccionadas: string[];
+interface ProcesoMultiSelectProps {
+  procesosDisponibles: string[];
+  procesosSeleccionados: string[];
   onChange: (selected: string[]) => void;
   darkTheme?: boolean;
 }
 
-export const LaborMultiSelect: React.FC<LaborMultiSelectProps> = ({
-  laboresDisponibles,
-  laboresSeleccionadas,
+export const ProcesoMultiSelect: React.FC<ProcesoMultiSelectProps> = ({
+  procesosDisponibles,
+  procesosSeleccionados,
   onChange,
   darkTheme = false
 }) => {
@@ -30,43 +30,43 @@ export const LaborMultiSelect: React.FC<LaborMultiSelectProps> = ({
   }, []);
 
   const isAllSelected =
-    laboresDisponibles.length > 0 &&
-    laboresSeleccionadas.length === laboresDisponibles.length;
+    procesosDisponibles.length > 0 &&
+    procesosSeleccionados.length === procesosDisponibles.length;
 
-  const isNoneSelected = laboresSeleccionadas.length === 0;
+  const isNoneSelected = procesosSeleccionados.length === 0;
 
-  const toggleLabor = (labor: string) => {
-    if (laboresSeleccionadas.includes(labor)) {
-      onChange(laboresSeleccionadas.filter((l) => l !== labor));
+  const toggleProceso = (proceso: string) => {
+    if (procesosSeleccionados.includes(proceso)) {
+      onChange(procesosSeleccionados.filter((p) => p !== proceso));
     } else {
-      onChange([...laboresSeleccionadas, labor]);
+      onChange([...procesosSeleccionados, proceso]);
     }
   };
 
   const handleSelectAll = () => {
-    onChange([...laboresDisponibles]);
+    onChange([...procesosDisponibles]);
   };
 
   const handleDeselectAll = () => {
     onChange([]);
   };
 
-  const filteredLabores = laboresDisponibles.filter((l) =>
-    l.toLowerCase().includes(search.toLowerCase())
+  const filteredProcesos = procesosDisponibles.filter((p) =>
+    p.toLowerCase().includes(search.toLowerCase())
   );
 
   // Trigger label formatting
-  let labelText = `Todas las labores (${laboresDisponibles.length})`;
+  let labelText = `Todos los procesos (${procesosDisponibles.length})`;
   if (isNoneSelected) {
-    labelText = 'Ninguna labor seleccionada';
+    labelText = 'Ningún proceso seleccionado';
   } else if (!isAllSelected) {
-    if (laboresSeleccionadas.length === 1) {
-      labelText = laboresSeleccionadas[0];
+    if (procesosSeleccionados.length === 1) {
+      labelText = procesosSeleccionados[0];
     } else {
-      labelText = `${laboresSeleccionadas.length} labores seleccionadas`;
+      labelText = `${procesosSeleccionados.length} procesos seleccionados`;
     }
   } else {
-    labelText = `Todas las labores (${laboresDisponibles.length})`;
+    labelText = 'Todos los procesos';
   }
 
   return (
@@ -82,7 +82,7 @@ export const LaborMultiSelect: React.FC<LaborMultiSelectProps> = ({
         }`}
       >
         <span className="flex items-center gap-2 truncate">
-          <Briefcase className={`w-3.5 h-3.5 shrink-0 ${darkTheme ? 'text-blue-200' : 'text-[#0a2958]'}`} />
+          <Layers className={`w-3.5 h-3.5 shrink-0 ${darkTheme ? 'text-blue-200' : 'text-[#0a2958]'}`} />
           <span className="truncate">{labelText}</span>
         </span>
         <div className="flex items-center gap-1 shrink-0">
@@ -92,7 +92,7 @@ export const LaborMultiSelect: React.FC<LaborMultiSelectProps> = ({
                 e.stopPropagation();
                 handleSelectAll();
               }}
-              title="Restablecer todas"
+              title="Restablecer todos"
               className={`p-0.5 rounded-full hover:bg-black/10 cursor-pointer ${
                 darkTheme ? 'text-blue-200' : 'text-stone-400 hover:text-stone-700'
               }`}
@@ -104,7 +104,7 @@ export const LaborMultiSelect: React.FC<LaborMultiSelectProps> = ({
         </div>
       </button>
 
-      {/* Popover Dropdown */}
+      {/* Popover Dropdown matching the screenshot exactly */}
       {isOpen && (
         <div
           className={`absolute left-0 mt-1.5 w-72 max-w-sm rounded-xl shadow-xl border p-3 z-[100] text-xs ${
@@ -118,7 +118,7 @@ export const LaborMultiSelect: React.FC<LaborMultiSelectProps> = ({
             <Search className={`w-3.5 h-3.5 absolute left-3 top-2.5 ${darkTheme ? 'text-blue-300' : 'text-stone-400'}`} />
             <input
               type="text"
-              placeholder="Buscar labor..."
+              placeholder="Buscar proceso..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               autoFocus
@@ -139,7 +139,7 @@ export const LaborMultiSelect: React.FC<LaborMultiSelectProps> = ({
             )}
           </div>
 
-          {/* Action buttons: Seleccionar todas / Desmarcar todas */}
+          {/* Action buttons: Seleccionar todos / Desmarcar todos */}
           <div className="flex items-center justify-between px-1 pb-2 mb-2 border-b border-stone-100 text-[11.5px]">
             <button
               type="button"
@@ -148,30 +148,30 @@ export const LaborMultiSelect: React.FC<LaborMultiSelectProps> = ({
                 darkTheme ? 'text-blue-200' : 'text-[#0a2958]'
               }`}
             >
-              Seleccionar todas
+              Seleccionar todos
             </button>
             <button
               type="button"
               onClick={handleDeselectAll}
               className="text-rose-600 font-semibold hover:underline cursor-pointer"
             >
-              Desmarcar todas
+              Desmarcar todos
             </button>
           </div>
 
-          {/* List of Labors */}
+          {/* List of Processes with checkboxes matching the image */}
           <div className="max-h-56 overflow-y-auto space-y-0.5 pr-1 custom-scrollbar">
-            {filteredLabores.length === 0 ? (
+            {filteredProcesos.length === 0 ? (
               <div className="py-4 text-stone-400 text-center italic text-xs">
-                No se encontraron labores
+                No se encontraron procesos
               </div>
             ) : (
-              filteredLabores.map((labor) => {
-                const isChecked = laboresSeleccionadas.includes(labor);
+              filteredProcesos.map((proceso) => {
+                const isChecked = procesosSeleccionados.includes(proceso);
                 return (
                   <div
-                    key={labor}
-                    onClick={() => toggleLabor(labor)}
+                    key={proceso}
+                    onClick={() => toggleProceso(proceso)}
                     className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg cursor-pointer transition-colors ${
                       darkTheme
                         ? 'hover:bg-[#144287]'
@@ -194,7 +194,7 @@ export const LaborMultiSelect: React.FC<LaborMultiSelectProps> = ({
                       {isChecked && <Check className="w-3 h-3 stroke-[3]" />}
                     </div>
                     <span className={`truncate text-xs ${isChecked ? 'font-medium text-stone-900' : 'text-stone-700'}`}>
-                      {labor}
+                      {proceso}
                     </span>
                   </div>
                 );

@@ -62,6 +62,7 @@ export interface ConsolidadoPriorizacion {
   codigo: string;
   nombre: string;
   labor: string;
+  proceso?: string;
   rendimiento: number;
   metaRendimiento: number;
   minimoRendimiento: number;

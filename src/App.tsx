@@ -36,6 +36,8 @@ export default function App() {
   const [estadoFiltro, setEstadoFiltro] = useState<string>('TODOS');
   const [laboresSeleccionadas, setLaboresSeleccionadas] = useState<string[]>([]);
   const [laboresInicializadas, setLaboresInicializadas] = useState<boolean>(false);
+  const [procesosSeleccionados, setProcesosSeleccionados] = useState<string[]>([]);
+  const [procesosInicializados, setProcesosInicializados] = useState<boolean>(false);
   const [matriculaSeleccionada, setMatriculaSeleccionada] = useState<string>('TODAS');
   const [areaMatriculaSeleccionada, setAreaMatriculaSeleccionada] = useState<string>('TODAS');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -73,6 +75,7 @@ export default function App() {
         }
       }
       setLaboresInicializadas(false);
+      setProcesosInicializados(false);
     } catch (err) {
       console.error('Error al actualizar datos:', err);
     } finally {
@@ -140,6 +143,18 @@ export default function App() {
     return Array.from(setLab).sort();
   }, [consolidatedPrioritizedList]);
 
+  // Procesos disponibles únicos (tomados EXCLUSIVAMENTE de la hoja Consolidado, columna Proceso)
+  const procesosDisponibles = useMemo(() => {
+    const setProc = new Set<string>();
+    // Tomar los procesos ÚNICAMENTE de la hoja Consolidado
+    activeConsolidadoRaw.forEach((c) => {
+      if (c.proceso && c.proceso.trim() !== '') {
+        setProc.add(c.proceso.trim());
+      }
+    });
+    return Array.from(setProc).sort((a, b) => a.localeCompare(b));
+  }, [activeConsolidadoRaw]);
+
   // Áreas disponibles en la Tabla Matrículas
   const areasMatriculaDisponibles = useMemo(() => {
     const setAreas = new Set<string>();
@@ -151,17 +166,23 @@ export default function App() {
     return Array.from(setAreas).sort();
   }, [activeMatriculasRaw]);
 
-  // Auto-inicializar laboresSeleccionadas con todas las labores disponibles cuando cambien o si está vacío
+  // Auto-inicializar laboresSeleccionadas inicialmente
   useEffect(() => {
-    if (laboresDisponibles.length > 0) {
-      if (!laboresInicializadas || laboresSeleccionadas.length === 0) {
-        setLaboresSeleccionadas(laboresDisponibles);
-        setLaboresInicializadas(true);
-      }
+    if (laboresDisponibles.length > 0 && !laboresInicializadas) {
+      setLaboresSeleccionadas(laboresDisponibles);
+      setLaboresInicializadas(true);
     }
-  }, [laboresDisponibles, laboresInicializadas, laboresSeleccionadas.length]);
+  }, [laboresDisponibles, laboresInicializadas]);
 
-  // Filtrado final según Semana, Labor, Matrícula, Área de Matrícula, Estado y Búsqueda
+  // Auto-inicializar procesosSeleccionados inicialmente
+  useEffect(() => {
+    if (procesosDisponibles.length > 0 && !procesosInicializados) {
+      setProcesosSeleccionados(procesosDisponibles);
+      setProcesosInicializados(true);
+    }
+  }, [procesosDisponibles, procesosInicializados]);
+
+  // Filtrado final según Semana, Labor, Proceso, Matrícula, Área de Matrícula, Estado y Búsqueda
   const filteredPrioritizationData = useMemo(() => {
     return consolidatedPrioritizedList.filter((item) => {
       // 1. Filtro por Semana
@@ -170,9 +191,33 @@ export default function App() {
       }
 
       // 2. Filtro por Labor (múltiple)
-      if (laboresSeleccionadas.length > 0 && laboresSeleccionadas.length < laboresDisponibles.length) {
-        if (!laboresSeleccionadas.includes(item.labor.trim())) {
+      if (laboresDisponibles.length > 0) {
+        if (laboresSeleccionadas.length === 0) {
+          // Si el usuario desmarcó todas las labores, no mostrar elementos
           return false;
+        }
+        if (laboresSeleccionadas.length < laboresDisponibles.length) {
+          if (!laboresSeleccionadas.includes(item.labor.trim())) {
+            return false;
+          }
+        }
+      }
+
+      // 2.5 Filtro por Proceso (múltiple) - Evaluado EXCLUSIVAMENTE contra la hoja Consolidado
+      if (procesosDisponibles.length > 0) {
+        if (procesosSeleccionados.length === 0) {
+          // Si el usuario desmarcó todos los procesos, no mostrar elementos
+          return false;
+        }
+        if (procesosSeleccionados.length < procesosDisponibles.length) {
+          const itemProc = item.proceso?.trim();
+          const matchesProc = itemProc && procesosSeleccionados.includes(itemProc);
+          const matchesInCal = item.todasLasEvaluacionesCalidad?.some(
+            c => c.proceso && procesosSeleccionados.includes(c.proceso.trim())
+          );
+          if (!matchesProc && !matchesInCal) {
+            return false;
+          }
         }
       }
 
@@ -206,14 +251,15 @@ export default function App() {
         }
       }
 
-      // 6. Filtro por Búsqueda (Nombre, Matrícula o Labor)
+      // 6. Filtro por Búsqueda (Nombre, Matrícula, Labor o Proceso)
       if (searchQuery.trim() !== '') {
         const q = searchQuery.toLowerCase().trim();
         const matchNombre = item.nombre.toLowerCase().includes(q);
         const matchCodigo = item.codigo.toLowerCase().includes(q);
         const matchLabor = item.labor.toLowerCase().includes(q);
+        const matchProceso = item.proceso?.toLowerCase().includes(q) || false;
         const matchAreaMatricula = item.areaMatricula?.toLowerCase().includes(q) || false;
-        if (!matchNombre && !matchCodigo && !matchLabor && !matchAreaMatricula) {
+        if (!matchNombre && !matchCodigo && !matchLabor && !matchProceso && !matchAreaMatricula) {
           return false;
         }
       }
@@ -225,6 +271,8 @@ export default function App() {
     semanaSeleccionada,
     laboresSeleccionadas,
     laboresDisponibles,
+    procesosSeleccionados,
+    procesosDisponibles,
     matriculaSeleccionada,
     areaMatriculaSeleccionada,
     estadoFiltro,
@@ -294,6 +342,9 @@ export default function App() {
               laboresDisponibles={laboresDisponibles}
               laboresSeleccionadas={laboresSeleccionadas}
               onSelectLabores={setLaboresSeleccionadas}
+              procesosDisponibles={procesosDisponibles}
+              procesosSeleccionados={procesosSeleccionados}
+              onSelectProcesos={setProcesosSeleccionados}
               matriculaSeleccionada={matriculaSeleccionada}
               onSelectMatricula={setMatriculaSeleccionada}
               matriculasDisponibles={activeMatriculasRaw}
@@ -324,6 +375,9 @@ export default function App() {
                 laboresDisponibles={laboresDisponibles}
                 laboresSeleccionadas={laboresSeleccionadas}
                 onSelectLabores={setLaboresSeleccionadas}
+                procesosDisponibles={procesosDisponibles}
+                procesosSeleccionados={procesosSeleccionados}
+                onSelectProcesos={setProcesosSeleccionados}
               />
             )}
 

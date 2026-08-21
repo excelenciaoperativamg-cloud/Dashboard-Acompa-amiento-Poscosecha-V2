@@ -12,9 +12,11 @@ import {
   TrendingUp,
   ChevronDown,
   ChevronUp,
-  RotateCcw
+  RotateCcw,
+  Layers
 } from 'lucide-react';
 import { LaborMultiSelect } from './LaborMultiSelect';
+import { ProcesoMultiSelect } from './ProcesoMultiSelect';
 import { PersonaMatricula } from '../types';
 
 interface FilterBarProps {
@@ -25,6 +27,10 @@ interface FilterBarProps {
   laboresDisponibles: string[];
   laboresSeleccionadas: string[];
   onSelectLabores: (labores: string[]) => void;
+
+  procesosDisponibles?: string[];
+  procesosSeleccionados?: string[];
+  onSelectProcesos?: (procesos: string[]) => void;
 
   matriculaSeleccionada: string;
   onSelectMatricula: (mat: string) => void;
@@ -51,6 +57,9 @@ export const FilterBar: React.FC<FilterBarProps> = ({
   laboresDisponibles,
   laboresSeleccionadas,
   onSelectLabores,
+  procesosDisponibles = [],
+  procesosSeleccionados = [],
+  onSelectProcesos,
   matriculaSeleccionada,
   onSelectMatricula,
   matriculasDisponibles,
@@ -72,9 +81,15 @@ export const FilterBar: React.FC<FilterBarProps> = ({
     laboresSeleccionadas.length > 0 &&
     laboresSeleccionadas.length < laboresDisponibles.length;
 
+  const isProcesoFiltered =
+    procesosDisponibles.length > 0 &&
+    procesosSeleccionados.length > 0 &&
+    procesosSeleccionados.length < procesosDisponibles.length;
+
   const activeFiltersCount = [
     semanaSeleccionada !== 'TODAS',
     isLaborFiltered,
+    isProcesoFiltered,
     matriculaSeleccionada !== 'TODAS',
     areaMatriculaSeleccionada !== 'TODAS',
     estadoFiltro !== 'TODOS',
@@ -84,6 +99,9 @@ export const FilterBar: React.FC<FilterBarProps> = ({
   const handleResetFilters = () => {
     onSelectSemana('TODAS');
     onSelectLabores([...laboresDisponibles]);
+    if (onSelectProcesos) {
+      onSelectProcesos([...procesosDisponibles]);
+    }
     onSelectMatricula('TODAS');
     onSelectAreaMatricula('TODAS');
     onSelectEstado('TODOS');
@@ -149,7 +167,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
 
       {/* Segment Filters Container (White background with dark blue top border) - Only visible on 'tabla' tab */}
       {activeTab === 'tabla' && (
-        <div className="bg-white rounded-xl shadow-xs border border-stone-200 border-t-4 border-t-[#0a2958] overflow-hidden transition-all">
+        <div className="bg-white rounded-xl shadow-xs border border-stone-200 border-t-4 border-t-[#0a2958] overflow-visible relative z-30 transition-all">
           {/* Banner Header */}
           <div className="p-3.5 sm:p-4 flex items-center justify-between gap-3">
             <div className="flex items-center gap-2.5">
@@ -198,19 +216,49 @@ export const FilterBar: React.FC<FilterBarProps> = ({
 
           {/* Expandable Filter Body */}
           {!isCollapsed && (
-            <div className="p-3.5 sm:p-4 pt-0 border-t border-stone-100 bg-white space-y-4">
-              <div className="pt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
+            <div className="p-3.5 sm:p-4 pt-0 border-t border-stone-100 bg-white space-y-4 overflow-visible">
+              <div className="pt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-3">
+                {/* Selector de Labores (Múltiple) */}
+                <div className="space-y-1">
+                  <label className="block text-[11px] font-bold text-stone-600 uppercase tracking-wider flex items-center gap-1.5">
+                    <Briefcase className="w-3.5 h-3.5 text-[#0a2958]" />
+                    Labor:
+                  </label>
+                  <LaborMultiSelect
+                    laboresDisponibles={laboresDisponibles}
+                    laboresSeleccionadas={laboresSeleccionadas}
+                    onChange={onSelectLabores}
+                    darkTheme={false}
+                  />
+                </div>
+
+                {/* Selector de Proceso (Múltiple) */}
+                {onSelectProcesos && (
+                  <div className="space-y-1">
+                    <label className="block text-[11px] font-bold text-stone-600 uppercase tracking-wider flex items-center gap-1.5">
+                      <Layers className="w-3.5 h-3.5 text-[#0a2958]" />
+                      Proceso:
+                    </label>
+                    <ProcesoMultiSelect
+                      procesosDisponibles={procesosDisponibles}
+                      procesosSeleccionados={procesosSeleccionados}
+                      onChange={onSelectProcesos}
+                      darkTheme={false}
+                    />
+                  </div>
+                )}
+
                 {/* Selector de Semana */}
                 <div className="space-y-1">
-                  <label htmlFor="filter-semana-select" className="block text-xs font-medium text-stone-600 flex items-center gap-1.5">
+                  <label htmlFor="filter-semana-select" className="block text-[11px] font-bold text-stone-600 uppercase tracking-wider flex items-center gap-1.5">
                     <Calendar className="w-3.5 h-3.5 text-[#0a2958]" />
-                    Filtrar por Semana:
+                    Semana:
                   </label>
                   <select
                     id="filter-semana-select"
                     value={semanaSeleccionada}
                     onChange={(e) => onSelectSemana(e.target.value)}
-                    className="w-full bg-stone-50 border border-stone-200 text-stone-800 text-xs font-medium rounded-lg px-2.5 py-2 focus:ring-2 focus:ring-[#0a2958]/30 focus:border-[#0a2958] focus:outline-none"
+                    className="w-full bg-white hover:bg-stone-50 border border-stone-200 text-stone-800 text-xs font-medium rounded-lg px-2.5 py-2 focus:ring-2 focus:ring-[#0a2958]/30 focus:border-[#0a2958] focus:outline-none shadow-2xs"
                   >
                     <option value="TODAS">Todas las semanas</option>
                     {semanasDisponibles.map((sem) => (
@@ -221,31 +269,17 @@ export const FilterBar: React.FC<FilterBarProps> = ({
                   </select>
                 </div>
 
-                {/* Selector de Labores (Múltiple) */}
-                <div className="space-y-1">
-                  <label className="block text-xs font-medium text-stone-600 flex items-center gap-1.5">
-                    <Briefcase className="w-3.5 h-3.5 text-[#0a2958]" />
-                    Filtrar por Labores:
-                  </label>
-                  <LaborMultiSelect
-                    laboresDisponibles={laboresDisponibles}
-                    laboresSeleccionadas={laboresSeleccionadas}
-                    onChange={onSelectLabores}
-                    darkTheme={false}
-                  />
-                </div>
-
                 {/* Selector de Matrícula / Operario */}
                 <div className="space-y-1">
-                  <label htmlFor="filter-matricula-select" className="block text-xs font-medium text-stone-600 flex items-center gap-1.5">
+                  <label htmlFor="filter-matricula-select" className="block text-[11px] font-bold text-stone-600 uppercase tracking-wider flex items-center gap-1.5">
                     <IdCard className="w-3.5 h-3.5 text-[#0a2958]" />
-                    Filtrar por Matrícula:
+                    Matrícula:
                   </label>
                   <select
                     id="filter-matricula-select"
                     value={matriculaSeleccionada}
                     onChange={(e) => onSelectMatricula(e.target.value)}
-                    className="w-full bg-stone-50 border border-stone-200 text-stone-800 text-xs font-medium rounded-lg px-2.5 py-2 focus:ring-2 focus:ring-[#0a2958]/30 focus:border-[#0a2958] focus:outline-none"
+                    className="w-full bg-white hover:bg-stone-50 border border-stone-200 text-stone-800 text-xs font-medium rounded-lg px-2.5 py-2 focus:ring-2 focus:ring-[#0a2958]/30 focus:border-[#0a2958] focus:outline-none shadow-2xs"
                   >
                     <option value="TODAS">Todas las matrículas</option>
                     <optgroup label="Estado Registro">
@@ -266,15 +300,15 @@ export const FilterBar: React.FC<FilterBarProps> = ({
 
                 {/* Selector de Área (Matrícula) */}
                 <div className="space-y-1">
-                  <label htmlFor="filter-area-select" className="block text-xs font-medium text-stone-600 flex items-center gap-1.5">
+                  <label htmlFor="filter-area-select" className="block text-[11px] font-bold text-stone-600 uppercase tracking-wider flex items-center gap-1.5">
                     <Building2 className="w-3.5 h-3.5 text-[#0a2958]" />
-                    Área (Matrículas):
+                    Área:
                   </label>
                   <select
                     id="filter-area-select"
                     value={areaMatriculaSeleccionada}
                     onChange={(e) => onSelectAreaMatricula(e.target.value)}
-                    className="w-full bg-stone-50 border border-stone-200 text-stone-800 text-xs font-medium rounded-lg px-2.5 py-2 focus:ring-2 focus:ring-[#0a2958]/30 focus:border-[#0a2958] focus:outline-none"
+                    className="w-full bg-white hover:bg-stone-50 border border-stone-200 text-stone-800 text-xs font-medium rounded-lg px-2.5 py-2 focus:ring-2 focus:ring-[#0a2958]/30 focus:border-[#0a2958] focus:outline-none shadow-2xs"
                   >
                     <option value="TODAS">Todas las áreas</option>
                     {areasMatriculaDisponibles.map((area) => (
@@ -287,15 +321,15 @@ export const FilterBar: React.FC<FilterBarProps> = ({
 
                 {/* Selector de Estado */}
                 <div className="space-y-1">
-                  <label htmlFor="filter-estado-select" className="block text-xs font-medium text-stone-600 flex items-center gap-1.5">
+                  <label htmlFor="filter-estado-select" className="block text-[11px] font-bold text-stone-600 uppercase tracking-wider flex items-center gap-1.5">
                     <Filter className="w-3.5 h-3.5 text-[#0a2958]" />
-                    Filtrar por Estado:
+                    Estado:
                   </label>
                   <select
                     id="filter-estado-select"
                     value={estadoFiltro}
                     onChange={(e) => onSelectEstado(e.target.value)}
-                    className="w-full bg-stone-50 border border-stone-200 text-stone-800 text-xs font-medium rounded-lg px-2.5 py-2 focus:ring-2 focus:ring-[#0a2958]/30 focus:border-[#0a2958] focus:outline-none"
+                    className="w-full bg-white hover:bg-stone-50 border border-stone-200 text-stone-800 text-xs font-medium rounded-lg px-2.5 py-2 focus:ring-2 focus:ring-[#0a2958]/30 focus:border-[#0a2958] focus:outline-none shadow-2xs"
                   >
                     <option value="TODOS">Todos los estados</option>
                     <option value="En observación">En observación (Alta)</option>
@@ -307,9 +341,9 @@ export const FilterBar: React.FC<FilterBarProps> = ({
 
                 {/* Búsqueda por texto */}
                 <div className="space-y-1">
-                  <label htmlFor="filter-search-input" className="block text-xs font-medium text-stone-600 flex items-center gap-1.5">
+                  <label htmlFor="filter-search-input" className="block text-[11px] font-bold text-stone-600 uppercase tracking-wider flex items-center gap-1.5">
                     <Search className="w-3.5 h-3.5 text-[#0a2958]" />
-                    Buscar Operario o Labor:
+                    Búsqueda:
                   </label>
                   <div className="relative">
                     <input
@@ -318,7 +352,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
                       placeholder="Nombre, código..."
                       value={searchQuery}
                       onChange={(e) => onSearchChange(e.target.value)}
-                      className="w-full bg-stone-50 border border-stone-200 text-stone-800 placeholder-stone-400 text-xs font-medium rounded-lg pl-3 pr-8 py-2 focus:ring-2 focus:ring-[#0a2958]/30 focus:border-[#0a2958] focus:outline-none"
+                      className="w-full bg-white hover:bg-stone-50 border border-stone-200 text-stone-800 placeholder-stone-400 text-xs font-medium rounded-lg pl-3 pr-8 py-2 focus:ring-2 focus:ring-[#0a2958]/30 focus:border-[#0a2958] focus:outline-none shadow-2xs"
                     />
                     {searchQuery && (
                       <button
