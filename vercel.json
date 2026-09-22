@@ -4,8 +4,20 @@
   "outputDirectory": "dist",
   "rewrites": [
     {
+      "source": "/api/sheets/data",
+      "destination": "/api/sheets/data"
+    },
+    {
+      "source": "/api/health",
+      "destination": "/api/health"
+    },
+    {
       "source": "/api/(.*)",
       "destination": "/api/index"
+    },
+    {
+      "source": "/((?!api/.*).*)",
+      "destination": "/index.html"
     }
   ]
 }

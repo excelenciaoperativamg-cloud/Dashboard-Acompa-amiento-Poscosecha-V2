@@ -1,6 +1,5 @@
 import express from 'express';
 import path from 'path';
-import { createServer as createViteServer } from 'vite';
 import Papa from 'papaparse';
 import {
   EvaluacionRendimiento,
@@ -517,6 +516,7 @@ app.get(['/api/sheets/data', '/sheets/data'], (async (req, res) => {
 
 async function startServer() {
   if (process.env.NODE_ENV !== 'production') {
+    const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: 'spa'
@@ -530,14 +530,16 @@ async function startServer() {
     });
   }
 
-  if (process.env.VERCEL !== '1') {
+  const isVercel = process.env.VERCEL === '1' || process.env.VERCEL === 'true' || Boolean(process.env.VERCEL_ENV) || Boolean(process.env.NOW_REGION);
+  if (!isVercel) {
     app.listen(PORT, '0.0.0.0', () => {
       console.log(`Server listening on http://0.0.0.0:${PORT}`);
     });
   }
 }
 
-if (process.env.VERCEL !== '1') {
+const isVercel = process.env.VERCEL === '1' || process.env.VERCEL === 'true' || Boolean(process.env.VERCEL_ENV) || Boolean(process.env.NOW_REGION);
+if (!isVercel) {
   startServer();
 }
 
