@@ -145,13 +145,14 @@ export const ConsolidadoTable: React.FC<ConsolidadoTableProps> = ({
     const rowsHtml = sortedData.map((d) => {
       const isCalidadBaja = d.porcentajeProceso !== undefined && d.porcentajeProceso < 85;
       const calidadText = d.porcentajeProceso !== undefined && !isNaN(d.porcentajeProceso) ? `${d.porcentajeProceso.toFixed(1)}%` : '-';
+      const isRendBajo = d.metaRendimiento > 0 && d.rendimiento < d.metaRendimiento;
       return `
         <tr>
           <td>${d.semana}</td>
           <td style="font-family: monospace;">${d.codigo}</td>
           <td><strong>${d.nombre}</strong></td>
           <td>${d.labor}</td>
-          <td style="font-family: monospace;">${d.rendimiento} / ${d.metaRendimiento}</td>
+          <td style="font-family: monospace;"><span style="${isRendBajo ? 'color: #dc2626; font-weight: bold;' : 'color: #000000; font-weight: 600;'}">${d.rendimiento}</span> / ${d.metaRendimiento}</td>
           <td style="font-family: monospace; ${isCalidadBaja ? 'color: #dc2626; font-weight: bold;' : ''}">${calidadText}</td>
           <td>${d.resultadoRendimiento}</td>
           <td>${d.resultadoCalidad}</td>
@@ -390,10 +391,8 @@ export const ConsolidadoTable: React.FC<ConsolidadoTableProps> = ({
                   rowBgClass = 'bg-amber-50/30 hover:bg-amber-50/60';
                 }
 
-                const isBelowMinRendimiento =
-                  (row.minimoRendimiento && row.minimoRendimiento > 0)
-                    ? row.rendimiento < row.minimoRendimiento
-                    : (row.resultadoRendimiento === 'En observación' || (row.metaRendimiento > 0 && row.rendimiento < row.metaRendimiento));
+                const isBelowMetaRendimiento =
+                  row.metaRendimiento > 0 && row.rendimiento < row.metaRendimiento;
 
                 return (
                   <React.Fragment key={row.id}>
@@ -436,10 +435,10 @@ export const ConsolidadoTable: React.FC<ConsolidadoTableProps> = ({
                       </td>
                       <td className="px-1.5 py-1.5 text-left text-[11px] whitespace-nowrap">
                         <div className="leading-snug">
-                          <div className={`font-mono ${isBelowMinRendimiento ? 'text-rose-600 font-bold' : 'text-stone-900 font-semibold'}`}>
+                          <div className={`font-mono ${isBelowMetaRendimiento ? 'text-red-600 font-bold' : 'text-black font-semibold'}`}>
                             {Math.round(row.rendimiento)}
                           </div>
-                          <span className="text-[10px] text-stone-400 font-normal block">
+                          <span className="text-[10px] text-stone-500 font-normal block">
                             (Meta: {Math.round(row.metaRendimiento)})
                           </span>
                         </div>
@@ -527,7 +526,7 @@ export const ConsolidadoTable: React.FC<ConsolidadoTableProps> = ({
                                     >
                                       <span><strong>Labor:</strong> {r.labor}</span>
                                       <span className="font-mono">
-                                        Rend: {r.rendimiento} | Meta: {r.meta} | Mín: {r.minimo} | Obs: {r.observacion ?? Math.round(r.minimo * 0.9)}
+                                        Rend: <span className={r.meta > 0 && r.rendimiento < r.meta ? 'text-red-600 font-bold' : 'text-black font-semibold'}>{r.rendimiento}</span> | Meta: {r.meta} | Mín: {r.minimo} | Obs: {r.observacion ?? Math.round(r.minimo * 0.9)}
                                       </span>
                                     </div>
                                   ))}
@@ -724,7 +723,12 @@ export const ConsolidadoTable: React.FC<ConsolidadoTableProps> = ({
                           <td className="p-2 border border-stone-200 font-mono">{d.codigo}</td>
                           <td className="p-2 border border-stone-200 font-medium text-stone-900">{d.nombre}</td>
                           <td className="p-2 border border-stone-200">{d.labor}</td>
-                          <td className="p-2 border border-stone-200 font-mono">{d.rendimiento} / {d.metaRendimiento}</td>
+                          <td className="p-2 border border-stone-200 font-mono">
+                            <span className={d.metaRendimiento > 0 && d.rendimiento < d.metaRendimiento ? 'text-red-600 font-bold' : 'text-black font-semibold'}>
+                              {d.rendimiento}
+                            </span>{' '}
+                            / {d.metaRendimiento}
+                          </td>
                           <td className={`p-2 border border-stone-200 font-mono ${d.porcentajeProceso !== undefined && d.porcentajeProceso < 85 ? 'text-rose-600 font-bold' : 'font-semibold'}`}>
                             {d.porcentajeProceso !== undefined && !isNaN(d.porcentajeProceso) ? `${d.porcentajeProceso.toFixed(1)}%` : '-'}
                           </td>
