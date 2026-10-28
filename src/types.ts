@@ -115,3 +115,40 @@ export interface SheetsDataResponse {
   consolidadoPriorizado: ConsolidadoPriorizacion[];
   error?: string;
 }
+
+export interface OperarioCumplimientoDetalle {
+  codigo: string;
+  nombre: string;
+  labor: string;
+  ejecutadas: number;
+  requeridas: number;
+  porcentaje: number;
+  rendimientoCount: number;
+  calidadCount: number;
+}
+
+export interface ResumenCumplimientoFormador {
+  formador: string;
+  evaluacionesRequeridas: number;
+  evaluacionesEjecutadas: number;
+  porcentajeCumplimiento: number;
+  operariosAtendidos: number;
+  rendimientoEjecutadas: number;
+  calidadEjecutadas: number;
+  acompanamientosEjecutados: number;
+  estado: 'Sobresaliente' | 'En meta' | 'Por reforzar';
+  operarios: OperarioCumplimientoDetalle[];
+}
+
+export interface MetricasCumplimientoGlobal {
+  totalEjecutadas: number;
+  totalRequeridas: number;
+  porcentajeCumplimiento: number;
+  formadoresActivos: number;
+  operariosCubiertos: number;
+  estadoGlobal: 'Sobresaliente' | 'En meta' | 'Por reforzar';
+  desgloseFormadores: ResumenCumplimientoFormador[];
+  semanaEstimadaOrigen?: string;
+  semanaEvaluada?: string;
+  totalAfDiaFormadorDiario?: number;
+}

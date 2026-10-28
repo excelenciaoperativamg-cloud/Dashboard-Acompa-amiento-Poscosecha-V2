@@ -364,6 +364,8 @@ export default function App() {
               <KPICards
                 data={filteredPrioritizationData}
                 semanaSeleccionada={semanaSeleccionada}
+                bajosIndicadores={activeBajosIndicadoresRaw}
+                matriculas={activeMatriculasRaw}
               />
             )}
 
@@ -386,6 +388,9 @@ export default function App() {
               <GestionBajosIndicadores
                 bajosIndicadores={activeBajosIndicadoresRaw}
                 semanasDisponibles={semanasDisponibles}
+                consolidadoPriorizado={consolidatedPrioritizedList}
+                matriculas={activeMatriculasRaw}
+                semanaSeleccionada={semanaSeleccionada}
               />
             )}
 

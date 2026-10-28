@@ -1,19 +1,24 @@
 import { EvaluacionRendimiento, EvaluacionCalidad, PersonaMatricula, RegistroBajoIndicador } from '../types';
 
 export const MOCK_MATRICULAS: PersonaMatricula[] = [
-  { codigo: '1001', nombre: 'María Camila Rodríguez', cargo: 'Operario Poscosecha', area: 'Clasificación' },
-  { codigo: '1002', nombre: 'Juan José Gómez', cargo: 'Operario Poscosecha', area: 'Armado de Ramos' },
-  { codigo: '1003', nombre: 'Ana Lucía Martínez', cargo: 'Operario Poscosecha', area: 'Enmalle y Capuchón' },
-  { codigo: '1004', nombre: 'Carlos Eduardo Pérez', cargo: 'Operario Poscosecha', area: 'Empaque' },
-  { codigo: '1005', nombre: 'Diana Patricia Vargas', cargo: 'Operario Poscosecha', area: 'Hidratación' },
-  { codigo: '1006', nombre: 'Jorge Iván Jaramillo', cargo: 'Operario Poscosecha', area: 'Desbotonado' },
-  { codigo: '1007', nombre: 'Sonia Esperanza Morales', cargo: 'Operario Poscosecha', area: 'Clasificación' },
-  { codigo: '1008', nombre: 'Andrés Felipe Castro', cargo: 'Operario Poscosecha', area: 'Armado de Ramos' },
-  { codigo: '1009', nombre: 'Valeria Restrepo', cargo: 'Operario Poscosecha', area: 'Capuchón' },
-  { codigo: '1010', nombre: 'Gabriel Antonio Silva', cargo: 'Operario Poscosecha', area: 'Empaque' },
-  { codigo: '1011', nombre: 'Martha Isabel Londoño', cargo: 'Operario Poscosecha', area: 'Selección Capullos' },
-  { codigo: '1012', nombre: 'Santiago Moreno', cargo: 'Operario Poscosecha', area: 'Enmalle' },
-  { codigo: '1013', nombre: 'MARTINEZ MARTINEZ LUIS MANUEL', cargo: 'Operario Poscosecha', area: 'Alimentador' }
+  { codigo: '1001', nombre: 'María Camila Rodríguez', cargo: 'Operario Poscosecha', area: 'Clasificación', formador: 'Diana Gabriela Pedraza' },
+  { codigo: '1002', nombre: 'Juan José Gómez', cargo: 'Operario Poscosecha', area: 'Armado de Ramos', formador: 'Yuleidys Pedrozo' },
+  { codigo: '1003', nombre: 'Ana Lucía Martínez', cargo: 'Operario Poscosecha', area: 'Enmalle y Capuchón', formador: 'Leysla Rodriguez' },
+  { codigo: '1004', nombre: 'Carlos Eduardo Pérez', cargo: 'Operario Poscosecha', area: 'Empaque', formador: 'Diana Gabriela Pedraza' },
+  { codigo: '1005', nombre: 'Diana Patricia Vargas', cargo: 'Operario Poscosecha', area: 'Hidratación', formador: 'Yuleidys Pedrozo' },
+  { codigo: '1006', nombre: 'Jorge Iván Jaramillo', cargo: 'Operario Poscosecha', area: 'Desbotonado', formador: 'Nidia Gomez Madero' },
+  { codigo: '1007', nombre: 'Sonia Esperanza Morales', cargo: 'Operario Poscosecha', area: 'Clasificación', formador: 'Diana Gabriela Pedraza' },
+  { codigo: '1008', nombre: 'Andrés Felipe Castro', cargo: 'Operario Poscosecha', area: 'Armado de Ramos', formador: 'Yuleidys Pedrozo' },
+  { codigo: '1009', nombre: 'Valeria Restrepo', cargo: 'Operario Poscosecha', area: 'Capuchón', formador: 'Leysla Rodriguez' },
+  { codigo: '1010', nombre: 'Gabriel Antonio Silva', cargo: 'Operario Poscosecha', area: 'Empaque', formador: 'Diana Gabriela Pedraza' },
+  { codigo: '1011', nombre: 'Martha Isabel Londoño', cargo: 'Operario Poscosecha', area: 'Selección Capullos', formador: 'Leysla Rodriguez' },
+  { codigo: '1012', nombre: 'Santiago Moreno', cargo: 'Operario Poscosecha', area: 'Enmalle', formador: 'Leysla Rodriguez' },
+  { codigo: '1013', nombre: 'MARTINEZ MARTINEZ LUIS MANUEL', cargo: 'Operario Poscosecha', area: 'Alimentador', formador: 'Nidia Gomez Madero' },
+  { codigo: '214500', nombre: 'VILLAMIL SUAREZ JENIFER ESTER', cargo: 'Operario Poscosecha', area: 'Clasificación', formador: 'Diana Gabriela Pedraza' },
+  { codigo: '214747', nombre: 'PUENTE BLANCO LUIS CARLOS', cargo: 'Operario Poscosecha', area: 'Armado de Ramos', formador: 'Yuleidys Pedrozo' },
+  { codigo: '214379', nombre: 'ALCAZAR ALCAZAR MAYBELYS', cargo: 'Operario Poscosecha', area: 'Mesas', formador: 'ROSALES BASTO LIDA LILI' },
+  { codigo: '214380', nombre: 'OYOLA DURANGO MISADAY', cargo: 'Operario Poscosecha', area: 'Mesas', formador: 'ROSALES BASTO LIDA LILI' },
+  { codigo: '3511', nombre: 'ESTUPINAN ESTEPA MARIA DEL CARMEN', cargo: 'Operario Poscosecha', area: 'Mesas', formador: 'ROSALES BASTO LIDA LILI' }
 ];
 
 export const MOCK_RENDIMIENTO: EvaluacionRendimiento[] = [
@@ -56,7 +61,7 @@ export const MOCK_RENDIMIENTO: EvaluacionRendimiento[] = [
   { ano: 2026, semana: '2026-31', fecha: '28/07/2026', codigo: '214380', nombre: 'OYOLA DURANGO MISADAY', labor: 'Mesas', proceso: 'Mesa', nuevoAntiguo: 'En ruta', fechaIngreso: '14/07/2026', dia: 1, rendimiento: 390, rendimientoEsperado: 200, meta: 200, minimo: 180, observacion: 160, registro: 'Rendimiento' },
   { ano: 2026, semana: '2026-31', fecha: '29/07/2026', codigo: '214380', nombre: 'OYOLA DURANGO MISADAY', labor: 'Mesas', proceso: 'Mesa', nuevoAntiguo: 'En ruta', fechaIngreso: '14/07/2026', dia: 2, rendimiento: 377, rendimientoEsperado: 220, meta: 220, minimo: 200, observacion: 180, registro: 'Rendimiento' },
 
-  { ano: 2026, semana: '2026-33', fecha: '13/08/2026', codigo: '3511', nombre: 'ESTUPINAN ESTEPA MARIA DEL CARMEN', labor: 'Mesas', proceso: 'Empaque', entrenador: 'CABALLERO GA', nuevoAntiguo: 'En ruta', fechaIngreso: '18/10/2005', dia: 1, rendimiento: 125, rendimientoEsperado: 200, meta: 200, minimo: 180, observacion: 160, registro: 'Rendimiento' },
+  { ano: 2026, semana: '2026-33', fecha: '13/08/2026', codigo: '3511', nombre: 'ESTUPINAN ESTEPA MARIA DEL CARMEN', labor: 'Mesas', proceso: 'Empaque', entrenador: 'ROSALES BASTO LIDA LILI', nuevoAntiguo: 'En ruta', fechaIngreso: '18/10/2005', dia: 1, rendimiento: 125, rendimientoEsperado: 200, meta: 200, minimo: 180, observacion: 160, registro: 'Rendimiento' },
 
   // Ejemplo anterior: MARTINEZ MARTINEZ LUIS MANUEL (5 evaluaciones)
   { ano: 2026, semana: '2026-28', fecha: '13/07/2026', codigo: '1013', nombre: 'MARTINEZ MARTINEZ LUIS MANUEL', labor: 'Alimentador', proceso: 'Alimentador 1', dia: 1, rendimiento: 380, rendimientoEsperado: 400, meta: 400, minimo: 350, observacion: 320, nuevoAntiguo: 'Nuevo', fechaIngreso: '01/06/2026' },
@@ -92,7 +97,21 @@ export const MOCK_RENDIMIENTO: EvaluacionRendimiento[] = [
   { ano: 2026, semana: '2026-27', fecha: '07/07/2026', codigo: '1001', nombre: 'María Camila Rodríguez', labor: 'Clasificación Rosas', proceso: 'Clasificación', dia: 1, rendimiento: 410, rendimientoEsperado: 420, meta: 420, minimo: 380, observacion: 350, nuevoAntiguo: 'Antiguo', fechaIngreso: '15/01/2024' },
   { ano: 2026, semana: '2026-27', fecha: '08/07/2026', codigo: '1002', nombre: 'Juan José Gómez', labor: 'Armado de Ramos', proceso: 'Armado', dia: 1, rendimiento: 320, rendimientoEsperado: 320, meta: 320, minimo: 290, observacion: 260, nuevoAntiguo: 'En ruta', fechaIngreso: '10/05/2026' },
   { ano: 2026, semana: '2026-27', fecha: '09/07/2026', codigo: '1003', nombre: 'Ana Lucía Martínez', labor: 'Enmalle y Capuchón', proceso: 'Capuchón', dia: 1, rendimiento: 460, rendimientoEsperado: 500, meta: 500, minimo: 450, observacion: 400, nuevoAntiguo: 'Antiguo', fechaIngreso: '01/03/2023' },
-  { ano: 2026, semana: '2026-27', fecha: '10/07/2026', codigo: '1004', nombre: 'Carlos Eduardo Pérez', labor: 'Empaque Cajas', proceso: 'Empaque', dia: 1, rendimiento: 105, rendimientoEsperado: 110, meta: 110, minimo: 95, observacion: 80, nuevoAntiguo: 'En ruta', fechaIngreso: '01/04/2026' }
+  { ano: 2026, semana: '2026-27', fecha: '10/07/2026', codigo: '1004', nombre: 'Carlos Eduardo Pérez', labor: 'Empaque Cajas', proceso: 'Empaque', dia: 1, rendimiento: 105, rendimientoEsperado: 110, meta: 110, minimo: 95, observacion: 80, nuevoAntiguo: 'En ruta', fechaIngreso: '01/04/2026' },
+
+  // Semana 2026-42 (Estima para Semana 43 meta de 469 evaluaciones según #AF / Día Formador)
+  { ano: 2026, semana: '2026-42', fecha: '14/10/2026', codigo: '1001', nombre: 'María Camila Rodríguez', labor: 'Clasificación Rosas', proceso: 'Clasificación', entrenador: 'Diana Gabriela Pedraza', dia: 1, rendimiento: 390, rendimientoEsperado: 420, meta: 420, minimo: 380, observacion: 350 },
+  { ano: 2026, semana: '2026-42', fecha: '14/10/2026', codigo: '1002', nombre: 'Juan José Gómez', labor: 'Armado de Ramos', proceso: 'Armado', entrenador: 'Yuleidys Pedrozo', dia: 1, rendimiento: 290, rendimientoEsperado: 320, meta: 320, minimo: 290, observacion: 260 },
+  { ano: 2026, semana: '2026-42', fecha: '15/10/2026', codigo: '1003', nombre: 'Ana Lucía Martínez', labor: 'Enmalle y Capuchón', proceso: 'Capuchón', entrenador: 'Leysla Rodriguez', dia: 1, rendimiento: 470, rendimientoEsperado: 500, meta: 500, minimo: 450, observacion: 400 },
+  { ano: 2026, semana: '2026-42', fecha: '15/10/2026', codigo: '1006', nombre: 'Jorge Iván Jaramillo', labor: 'Desbotonado', proceso: 'Campo', entrenador: 'Nidia Gomez Madero', dia: 1, rendimiento: 310, rendimientoEsperado: 350, meta: 350, minimo: 310, observacion: 300 },
+  { ano: 2026, semana: '2026-42', fecha: '16/10/2026', codigo: '3511', nombre: 'ESTUPINAN ESTEPA MARIA DEL CARMEN', labor: 'Mesas', proceso: 'Empaque', entrenador: 'CABALLERO GA', dia: 1, rendimiento: 175, rendimientoEsperado: 200, meta: 200, minimo: 180, observacion: 160 },
+
+  // Semana 2026-43 (Ejecución real de formadores: 402 evaluaciones formadores)
+  { ano: 2026, semana: '2026-43', fecha: '20/10/2026', codigo: '1001', nombre: 'María Camila Rodríguez', labor: 'Clasificación Rosas', proceso: 'Clasificación', entrenador: 'Diana Gabriela Pedraza', dia: 1, rendimiento: 430, rendimientoEsperado: 420, meta: 420, minimo: 380, observacion: 350 },
+  { ano: 2026, semana: '2026-43', fecha: '21/10/2026', codigo: '1002', nombre: 'Juan José Gómez', labor: 'Armado de Ramos', proceso: 'Armado', entrenador: 'Yuleidys Pedrozo', dia: 1, rendimiento: 330, rendimientoEsperado: 320, meta: 320, minimo: 290, observacion: 260 },
+  { ano: 2026, semana: '2026-43', fecha: '22/10/2026', codigo: '1003', nombre: 'Ana Lucía Martínez', labor: 'Enmalle y Capuchón', proceso: 'Capuchón', entrenador: 'Leysla Rodriguez', dia: 1, rendimiento: 510, rendimientoEsperado: 500, meta: 500, minimo: 450, observacion: 400 },
+  { ano: 2026, semana: '2026-43', fecha: '22/10/2026', codigo: '1006', nombre: 'Jorge Iván Jaramillo', labor: 'Desbotonado', proceso: 'Campo', entrenador: 'Nidia Gomez Madero', dia: 1, rendimiento: 360, rendimientoEsperado: 350, meta: 350, minimo: 310, observacion: 300 },
+  { ano: 2026, semana: '2026-43', fecha: '23/10/2026', codigo: '3511', nombre: 'ESTUPINAN ESTEPA MARIA DEL CARMEN', labor: 'Mesas', proceso: 'Empaque', entrenador: 'CABALLERO GA', dia: 1, rendimiento: 195, rendimientoEsperado: 200, meta: 200, minimo: 180, observacion: 160 }
 ];
 
 export const MOCK_CONSOLIDADO_CALIDAD: EvaluacionCalidad[] = [
@@ -152,7 +171,21 @@ export const MOCK_CONSOLIDADO_CALIDAD: EvaluacionCalidad[] = [
   { ano: 2026, semana: '2026-27', fecha: '07/07/2026', codigo: '1001', nombre: 'María Camila Rodríguez', labor: 'Clasificación Rosas', proceso: 'Clasificación', porcentajeCalidad: 91, porcentajeProceso: 91, porcentajeProducto: 91, metaCalidad: 90 },
   { ano: 2026, semana: '2026-27', fecha: '08/07/2026', codigo: '1002', nombre: 'Juan José Gómez', labor: 'Armado de Ramos', proceso: 'Armado', porcentajeCalidad: 88, porcentajeProceso: 88, porcentajeProducto: 88, metaCalidad: 90 },
   { ano: 2026, semana: '2026-27', fecha: '09/07/2026', codigo: '1003', nombre: 'Ana Lucía Martínez', labor: 'Enmalle y Capuchón', proceso: 'Capuchón', porcentajeCalidad: 92, porcentajeProceso: 92, porcentajeProducto: 92, metaCalidad: 90 },
-  { ano: 2026, semana: '2026-27', fecha: '10/07/2026', codigo: '1004', nombre: 'Carlos Eduardo Pérez', labor: 'Empaque Cajas', proceso: 'Empaque', porcentajeCalidad: 94, porcentajeProceso: 94, porcentajeProducto: 94, metaCalidad: 90 }
+  { ano: 2026, semana: '2026-27', fecha: '10/07/2026', codigo: '1004', nombre: 'Carlos Eduardo Pérez', labor: 'Empaque Cajas', proceso: 'Empaque', porcentajeCalidad: 94, porcentajeProceso: 94, porcentajeProducto: 94, metaCalidad: 90 },
+
+  // Semana 2026-42
+  { ano: 2026, semana: '2026-42', fecha: '14/10/2026', codigo: '1001', nombre: 'María Camila Rodríguez', labor: 'Clasificación Rosas', proceso: 'Clasificación', entrenador: 'Diana Gabriela Pedraza', porcentajeCalidad: 88, porcentajeProceso: 88, porcentajeProducto: 90, metaCalidad: 90 },
+  { ano: 2026, semana: '2026-42', fecha: '14/10/2026', codigo: '1002', nombre: 'Juan José Gómez', labor: 'Armado de Ramos', proceso: 'Armado', entrenador: 'Yuleidys Pedrozo', porcentajeCalidad: 82, porcentajeProceso: 82, porcentajeProducto: 85, metaCalidad: 90 },
+  { ano: 2026, semana: '2026-42', fecha: '15/10/2026', codigo: '1003', nombre: 'Ana Lucía Martínez', labor: 'Enmalle y Capuchón', proceso: 'Capuchón', entrenador: 'Leysla Rodriguez', porcentajeCalidad: 92, porcentajeProceso: 92, porcentajeProducto: 94, metaCalidad: 90 },
+  { ano: 2026, semana: '2026-42', fecha: '15/10/2026', codigo: '1006', nombre: 'Jorge Iván Jaramillo', labor: 'Desbotonado', proceso: 'Campo', entrenador: 'Nidia Gomez Madero', porcentajeCalidad: 84, porcentajeProceso: 84, porcentajeProducto: 86, metaCalidad: 90 },
+  { ano: 2026, semana: '2026-42', fecha: '16/10/2026', codigo: '3511', nombre: 'ESTUPINAN ESTEPA MARIA DEL CARMEN', labor: 'Mesas', proceso: 'Empaque', entrenador: 'CABALLERO GA', porcentajeCalidad: 80, porcentajeProceso: 80, porcentajeProducto: 82, metaCalidad: 90 },
+
+  // Semana 2026-43
+  { ano: 2026, semana: '2026-43', fecha: '20/10/2026', codigo: '1001', nombre: 'María Camila Rodríguez', labor: 'Clasificación Rosas', proceso: 'Clasificación', entrenador: 'Diana Gabriela Pedraza', porcentajeCalidad: 93, porcentajeProceso: 93, porcentajeProducto: 94, metaCalidad: 90 },
+  { ano: 2026, semana: '2026-43', fecha: '21/10/2026', codigo: '1002', nombre: 'Juan José Gómez', labor: 'Armado de Ramos', proceso: 'Armado', entrenador: 'Yuleidys Pedrozo', porcentajeCalidad: 90, porcentajeProceso: 90, porcentajeProducto: 91, metaCalidad: 90 },
+  { ano: 2026, semana: '2026-43', fecha: '22/10/2026', codigo: '1003', nombre: 'Ana Lucía Martínez', labor: 'Enmalle y Capuchón', proceso: 'Capuchón', entrenador: 'Leysla Rodriguez', porcentajeCalidad: 95, porcentajeProceso: 95, porcentajeProducto: 96, metaCalidad: 90 },
+  { ano: 2026, semana: '2026-43', fecha: '22/10/2026', codigo: '1006', nombre: 'Jorge Iván Jaramillo', labor: 'Desbotonado', proceso: 'Campo', entrenador: 'Nidia Gomez Madero', porcentajeCalidad: 91, porcentajeProceso: 91, porcentajeProducto: 92, metaCalidad: 90 },
+  { ano: 2026, semana: '2026-43', fecha: '23/10/2026', codigo: '3511', nombre: 'ESTUPINAN ESTEPA MARIA DEL CARMEN', labor: 'Mesas', proceso: 'Empaque', entrenador: 'CABALLERO GA', porcentajeCalidad: 89, porcentajeProceso: 89, porcentajeProducto: 90, metaCalidad: 90 }
 ];
 
 export const MOCK_BAJOS_INDICADORES: RegistroBajoIndicador[] = [
@@ -468,6 +501,123 @@ export const MOCK_BAJOS_INDICADORES: RegistroBajoIndicador[] = [
     indicadorOrigen: 'Baja Calidad',
     estadoAcompanamiento: 'En Proceso',
     fecha: '25/07/2026'
+  },
+
+  // Semana 2026-43 (Ejemplo del usuario: Estimado en Semana 42 = 469, Ejecutadas = 402)
+  // Registros ejecutados por Formadores (excluye SUP. RUTA y SUP. PROC en el espacio de Formador)
+  {
+    id: 'bi-43-1',
+    semana: '2026-43',
+    codigo: '1001',
+    nombre: 'María Camila Rodríguez',
+    labor: 'Clasificación Rosas',
+    formador: 'Diana Gabriela Pedraza',
+    tipoAcompanamiento: 'Calidad',
+    porcentajeAcompanamiento: 95,
+    metaAcompanamiento: 100,
+    indicadorOrigen: 'Baja Calidad',
+    estadoAcompanamiento: 'Completado',
+    fecha: '20/10/2026'
+  },
+  {
+    id: 'bi-43-2',
+    semana: '2026-43',
+    codigo: '1002',
+    nombre: 'Juan José Gómez',
+    labor: 'Armado de Ramos',
+    formador: 'Yuleidys Pedrozo',
+    tipoAcompanamiento: 'Rendimiento',
+    porcentajeAcompanamiento: 92,
+    metaAcompanamiento: 100,
+    indicadorOrigen: 'Bajo Rendimiento',
+    estadoAcompanamiento: 'Completado',
+    fecha: '21/10/2026'
+  },
+  {
+    id: 'bi-43-3',
+    semana: '2026-43',
+    codigo: '1003',
+    nombre: 'Ana Lucía Martínez',
+    labor: 'Enmalle y Capuchón',
+    formador: 'Leysla Rodriguez',
+    tipoAcompanamiento: 'Calidad',
+    porcentajeAcompanamiento: 90,
+    metaAcompanamiento: 100,
+    indicadorOrigen: 'Baja Calidad',
+    estadoAcompanamiento: 'Completado',
+    fecha: '22/10/2026'
+  },
+  {
+    id: 'bi-43-4',
+    semana: '2026-43',
+    codigo: '1006',
+    nombre: 'Jorge Iván Jaramillo',
+    labor: 'Desbotonado',
+    formador: 'Nidia Gomez Madero',
+    tipoAcompanamiento: 'Rendimiento',
+    porcentajeAcompanamiento: 88,
+    metaAcompanamiento: 100,
+    indicadorOrigen: 'Bajo Rendimiento',
+    estadoAcompanamiento: 'Completado',
+    fecha: '22/10/2026'
+  },
+  {
+    id: 'bi-43-5',
+    semana: '2026-43',
+    codigo: '3511',
+    nombre: 'ESTUPINAN ESTEPA MARIA DEL CARMEN',
+    labor: 'Mesas',
+    formador: 'CABALLERO GA',
+    tipoAcompanamiento: 'Rendimiento',
+    porcentajeAcompanamiento: 85,
+    metaAcompanamiento: 100,
+    indicadorOrigen: 'Bajo Rendimiento',
+    estadoAcompanamiento: 'Completado',
+    fecha: '23/10/2026'
+  },
+
+  // Acompañamientos de Supervisores en Semana 2026-43 (se reflejan en SUP. RUTA, pero se EXCLUYEN del Formador)
+  {
+    id: 'bi-43-sup-1',
+    semana: '2026-43',
+    codigo: '1002',
+    nombre: 'Juan José Gómez',
+    labor: 'Armado de Ramos',
+    formador: 'SUP. RUTA',
+    tipoAcompanamiento: 'Acompañamiento Sup Ruta',
+    porcentajeAcompanamiento: 100,
+    metaAcompanamiento: 100,
+    indicadorOrigen: 'Baja Calidad',
+    estadoAcompanamiento: 'Completado',
+    fecha: '21/10/2026'
+  },
+  {
+    id: 'bi-43-sup-2',
+    semana: '2026-43',
+    codigo: '1006',
+    nombre: 'Jorge Iván Jaramillo',
+    labor: 'Desbotonado',
+    formador: 'SUP. RUTA',
+    tipoAcompanamiento: 'Acompañamiento Sup Ruta',
+    porcentajeAcompanamiento: 100,
+    metaAcompanamiento: 100,
+    indicadorOrigen: 'Baja Calidad',
+    estadoAcompanamiento: 'Completado',
+    fecha: '22/10/2026'
+  },
+  {
+    id: 'bi-43-sup-3',
+    semana: '2026-43',
+    codigo: '1010',
+    nombre: 'Gabriel Antonio Silva',
+    labor: 'Empaque',
+    formador: 'SUP. PROC',
+    tipoAcompanamiento: 'Acompañamiento Sup Procesos',
+    porcentajeAcompanamiento: 90,
+    metaAcompanamiento: 100,
+    indicadorOrigen: 'Bajo Rendimiento',
+    estadoAcompanamiento: 'Completado',
+    fecha: '23/10/2026'
   }
 ];
 

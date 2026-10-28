@@ -143,7 +143,7 @@ export const ConsolidadoTable: React.FC<ConsolidadoTableProps> = ({
 
   const generatePrintHTML = () => {
     const rowsHtml = sortedData.map((d) => {
-      const isCalidadBaja = d.porcentajeProceso !== undefined && d.porcentajeProceso < 85;
+      const isCalidadBaja = d.porcentajeProceso !== undefined && !isNaN(d.porcentajeProceso) && d.porcentajeProceso < 90;
       const calidadText = d.porcentajeProceso !== undefined && !isNaN(d.porcentajeProceso) ? `${d.porcentajeProceso.toFixed(1)}%` : '-';
       const isRendBajo = d.metaRendimiento > 0 && d.rendimiento < d.metaRendimiento;
       return `
@@ -153,7 +153,7 @@ export const ConsolidadoTable: React.FC<ConsolidadoTableProps> = ({
           <td><strong>${d.nombre}</strong></td>
           <td>${d.labor}</td>
           <td style="font-family: monospace;"><span style="${isRendBajo ? 'color: #dc2626; font-weight: bold;' : 'color: #000000; font-weight: 600;'}">${d.rendimiento}</span> / ${d.metaRendimiento}</td>
-          <td style="font-family: monospace; ${isCalidadBaja ? 'color: #dc2626; font-weight: bold;' : ''}">${calidadText}</td>
+          <td style="font-family: monospace; ${isCalidadBaja ? 'color: #dc2626; font-weight: bold;' : 'color: #000000; font-weight: 600;'}">${calidadText}</td>
           <td>${d.resultadoRendimiento}</td>
           <td>${d.resultadoCalidad}</td>
           <td style="font-weight: bold; ${d.nivelPrioridad === 'Alta' ? 'color: #dc2626;' : d.nivelPrioridad === 'Media' ? 'color: #d97706;' : 'color: #16a34a;'}">${d.nivelPrioridad}</td>
@@ -394,6 +394,11 @@ export const ConsolidadoTable: React.FC<ConsolidadoTableProps> = ({
                 const isBelowMetaRendimiento =
                   row.metaRendimiento > 0 && row.rendimiento < row.metaRendimiento;
 
+                const isBelowMetaCalidad =
+                  row.porcentajeProceso !== undefined &&
+                  !isNaN(row.porcentajeProceso) &&
+                  row.porcentajeProceso < 90;
+
                 return (
                   <React.Fragment key={row.id}>
                     <tr className={`transition-colors ${rowBgClass}`}>
@@ -443,7 +448,7 @@ export const ConsolidadoTable: React.FC<ConsolidadoTableProps> = ({
                           </span>
                         </div>
                       </td>
-                      <td className={`px-1.5 py-1.5 font-mono text-[11px] whitespace-nowrap text-left ${row.porcentajeProceso !== undefined && row.porcentajeProceso < 85 ? 'text-rose-600 font-bold' : 'font-semibold text-[#0a2958]'}`}>
+                      <td className={`px-1.5 py-1.5 font-mono text-[11px] whitespace-nowrap text-left ${isBelowMetaCalidad ? 'text-red-600 font-bold' : 'text-black font-semibold'}`}>
                         {row.porcentajeProceso !== undefined && !isNaN(row.porcentajeProceso) ? `${row.porcentajeProceso.toFixed(1)}%` : '-'}
                       </td>
                       
@@ -573,7 +578,7 @@ export const ConsolidadoTable: React.FC<ConsolidadoTableProps> = ({
                                       </div>
                                       <div className="font-mono bg-white px-2.5 py-1 rounded border border-slate-200 shadow-2xs flex items-center gap-1.5">
                                         <span className="text-stone-600 font-medium">Resultado % Calidad (Menor):</span>
-                                        <span className={`font-bold text-xs ${promCalidadMenor !== undefined && promCalidadMenor < 85 ? 'text-rose-600' : 'text-[#0a2958]'}`}>
+                                        <span className={`font-bold text-xs ${promCalidadMenor !== undefined && !isNaN(promCalidadMenor) && promCalidadMenor < 90 ? 'text-red-600' : 'text-black'}`}>
                                           {promCalidadMenor !== undefined && !isNaN(promCalidadMenor) ? `${promCalidadMenor}%` : '-'}
                                         </span>
                                       </div>
@@ -582,22 +587,29 @@ export const ConsolidadoTable: React.FC<ConsolidadoTableProps> = ({
                                 })()}
 
                                 <div className="space-y-1">
-                                  {row.todasLasEvaluacionesCalidad.map((c, idx) => (
-                                    <div
-                                      key={idx}
-                                      className="p-2 bg-stone-50 rounded border border-stone-100 text-[11px] flex items-center justify-between gap-2 flex-wrap"
-                                    >
-                                      <span><strong>Labor:</strong> {c.labor}</span>
-                                      <div className="flex items-center gap-2.5 font-mono text-[10px]">
-                                        <span className="text-stone-600 bg-stone-200/60 px-1.5 py-0.5 rounded">
-                                          % Proceso: {(c.porcentajeProceso ?? c.porcentajeProcentaje) !== undefined ? `${c.porcentajeProceso ?? c.porcentajeProcentaje}%` : '-'}
-                                        </span>
-                                        <span className="text-stone-600 bg-stone-200/60 px-1.5 py-0.5 rounded">
-                                          % Producto: {c.porcentajeProducto !== undefined ? `${c.porcentajeProducto}%` : '-'}
-                                        </span>
+                                  {row.todasLasEvaluacionesCalidad.map((c, idx) => {
+                                    const procVal = c.porcentajeProceso ?? c.porcentajeProcentaje;
+                                    const isProcBajo = procVal !== undefined && !isNaN(procVal) && procVal < 90;
+                                    const prodVal = c.porcentajeProducto;
+                                    const isProdBajo = prodVal !== undefined && !isNaN(prodVal) && prodVal < 90;
+
+                                    return (
+                                      <div
+                                        key={idx}
+                                        className="p-2 bg-stone-50 rounded border border-stone-100 text-[11px] flex items-center justify-between gap-2 flex-wrap"
+                                      >
+                                        <span><strong>Labor:</strong> {c.labor}</span>
+                                        <div className="flex items-center gap-2.5 font-mono text-[10px]">
+                                          <span className={`px-1.5 py-0.5 rounded ${isProcBajo ? 'text-red-600 font-bold bg-red-50 border border-red-200' : 'text-stone-700 bg-stone-200/60 font-medium'}`}>
+                                            % Proceso: {procVal !== undefined && !isNaN(procVal) ? `${procVal}%` : '-'}
+                                          </span>
+                                          <span className={`px-1.5 py-0.5 rounded ${isProdBajo ? 'text-red-600 font-bold bg-red-50 border border-red-200' : 'text-stone-700 bg-stone-200/60 font-medium'}`}>
+                                            % Producto: {prodVal !== undefined && !isNaN(prodVal) ? `${prodVal}%` : '-'}
+                                          </span>
+                                        </div>
                                       </div>
-                                    </div>
-                                  ))}
+                                    );
+                                  })}
                                 </div>
                               </div>
                             </div>
@@ -729,7 +741,11 @@ export const ConsolidadoTable: React.FC<ConsolidadoTableProps> = ({
                             </span>{' '}
                             / {d.metaRendimiento}
                           </td>
-                          <td className={`p-2 border border-stone-200 font-mono ${d.porcentajeProceso !== undefined && d.porcentajeProceso < 85 ? 'text-rose-600 font-bold' : 'font-semibold'}`}>
+                          <td className={`p-2 border border-stone-200 font-mono ${
+                            d.porcentajeProceso !== undefined && !isNaN(d.porcentajeProceso) && d.porcentajeProceso < 90
+                              ? 'text-red-600 font-bold'
+                              : 'font-semibold text-black'
+                          }`}>
                             {d.porcentajeProceso !== undefined && !isNaN(d.porcentajeProceso) ? `${d.porcentajeProceso.toFixed(1)}%` : '-'}
                           </td>
                           <td className="p-2 border border-stone-200">{d.resultadoRendimiento}</td>

@@ -356,12 +356,14 @@ export function mapMatriculasRows(rows: any[]): PersonaMatricula[] {
     const rawNombre = getVal(['nombre', 'empleado', 'operario', 'persona']) || '';
     const rawCargo = getVal(['cargo', 'rol', 'puesto']) || 'Operario Poscosecha';
     const rawArea = getVal(['area', 'seccion', 'labor']) || 'Poscosecha';
+    const rawFormador = getVal(['formador', 'entrenador', 'capacitador', 'tutor', 'facilitador']) || '';
 
     return {
       codigo: String(rawCodigo).trim(),
       nombre: String(rawNombre).trim(),
       cargo: String(rawCargo).trim(),
-      area: String(rawArea).trim()
+      area: String(rawArea).trim(),
+      formador: String(rawFormador).trim() || undefined
     };
   }).filter(item => item.codigo !== '');
 }

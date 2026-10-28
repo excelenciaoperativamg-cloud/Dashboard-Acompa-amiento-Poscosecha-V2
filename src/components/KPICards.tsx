@@ -1,13 +1,21 @@
 import React from 'react';
 import { Users, AlertTriangle, UserCheck, Route, Activity } from 'lucide-react';
-import { ConsolidadoPriorizacion } from '../types';
+import { ConsolidadoPriorizacion, RegistroBajoIndicador, PersonaMatricula } from '../types';
+import { TarjetaCumplimientoFormador } from './TarjetaCumplimientoFormador';
 
 interface KPICardsProps {
   data: ConsolidadoPriorizacion[];
   semanaSeleccionada: string;
+  bajosIndicadores?: RegistroBajoIndicador[];
+  matriculas?: PersonaMatricula[];
 }
 
-export const KPICards: React.FC<KPICardsProps> = ({ data, semanaSeleccionada }) => {
+export const KPICards: React.FC<KPICardsProps> = ({
+  data,
+  semanaSeleccionada,
+  bajosIndicadores = [],
+  matriculas = []
+}) => {
   const totalOperarios = data.length;
 
   const enObservacion = data.filter(
@@ -26,7 +34,7 @@ export const KPICards: React.FC<KPICardsProps> = ({ data, semanaSeleccionada }) 
   const totalAcompProceso = data.reduce((acc, curr) => acc + (typeof curr.acompSemSupProceso === 'number' ? curr.acompSemSupProceso : 0), 0);
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 mb-5">
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 mb-5">
       
       {/* Card 1: Total Operarios Evaluados */}
       <div id="kpi-card-total-operarios" className="bg-white px-3.5 py-2.5 rounded-xl border border-stone-200 border-t-3 border-t-[#0a2958] shadow-2xs flex flex-col justify-between">
@@ -88,6 +96,16 @@ export const KPICards: React.FC<KPICardsProps> = ({ data, semanaSeleccionada }) 
         </div>
       </div>
 
+      {/* Card 6: Cumplimiento Evaluaciones Formador (Nueva Tarjeta Interactiva) */}
+      <TarjetaCumplimientoFormador
+        data={data}
+        semanaSeleccionada={semanaSeleccionada}
+        bajosIndicadores={bajosIndicadores}
+        matriculas={matriculas}
+        compact={true}
+      />
+
     </div>
   );
 };
+

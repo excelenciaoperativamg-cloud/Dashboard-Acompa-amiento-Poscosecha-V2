@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { RegistroBajoIndicador } from '../types';
+import { RegistroBajoIndicador, ConsolidadoPriorizacion, PersonaMatricula } from '../types';
 import {
   BarChart,
   Bar,
@@ -20,12 +20,17 @@ import {
   Filter,
   Users,
   CheckCircle2,
-  Info
+  Info,
+  Award
 } from 'lucide-react';
+import { TarjetaCumplimientoFormador } from './TarjetaCumplimientoFormador';
 
 interface GestionBajosIndicadoresProps {
   bajosIndicadores: RegistroBajoIndicador[];
   semanasDisponibles: string[];
+  consolidadoPriorizado?: ConsolidadoPriorizacion[];
+  matriculas?: PersonaMatricula[];
+  semanaSeleccionada?: string;
 }
 
 const COLOR_PALETTE = [
@@ -40,12 +45,24 @@ const COLOR_PALETTE = [
 
 export const GestionBajosIndicadores: React.FC<GestionBajosIndicadoresProps> = ({
   bajosIndicadores,
-  semanasDisponibles
+  semanasDisponibles,
+  consolidadoPriorizado = [],
+  matriculas = [],
+  semanaSeleccionada
 }) => {
-  const [semanaFiltro, setSemanaFiltro] = useState<string>('TODAS');
+  const [semanaFiltro, setSemanaFiltro] = useState<string>(
+    semanaSeleccionada && semanaSeleccionada !== 'TODAS' ? semanaSeleccionada : 'TODAS'
+  );
   const [formadorFiltro, setFormadorFiltro] = useState<string>('TODOS');
   const [searchPerson, setSearchPerson] = useState<string>('');
   const [graficaFormadorTipo, setGraficaFormadorTipo] = useState<'barras' | 'donut'>('barras');
+
+  // Sincronizar si cambia la semana seleccionada en la barra principal
+  React.useEffect(() => {
+    if (semanaSeleccionada && semanaSeleccionada !== 'TODAS') {
+      setSemanaFiltro(semanaSeleccionada);
+    }
+  }, [semanaSeleccionada]);
 
   // 1. Filtrar registros según Semana, Formador y Búsqueda
   const registrosFiltrados = useMemo(() => {
@@ -67,12 +84,14 @@ export const GestionBajosIndicadores: React.FC<GestionBajosIndicadoresProps> = (
     });
   }, [bajosIndicadores, semanaFiltro, formadorFiltro, searchPerson]);
 
-  // Lista de semanas disponibles exclusivamente de la hoja Bajos_Indicadores
+  // Lista de semanas disponibles (unificando Bajos_Indicadores, Consolidado y semanas generales)
   const semanasBajosIndicadores = useMemo(() => {
     const setS = new Set<string>();
     bajosIndicadores.forEach((r) => r.semana && setS.add(r.semana));
+    semanasDisponibles.forEach((s) => s && setS.add(s));
+    consolidadoPriorizado.forEach((c) => c.semana && setS.add(c.semana));
     return Array.from(setS).sort().reverse();
-  }, [bajosIndicadores]);
+  }, [bajosIndicadores, semanasDisponibles, consolidadoPriorizado]);
 
   // Lista de formadores disponibles
   const formadoresDisponibles = useMemo(() => {
@@ -320,13 +339,13 @@ export const GestionBajosIndicadores: React.FC<GestionBajosIndicadoresProps> = (
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3.5">
         <div className="bg-white border border-stone-200 rounded-xl p-4 flex items-center gap-3 shadow-xs">
           <div className="p-3 bg-purple-50 text-purple-700 rounded-xl">
             <CheckCircle2 className="w-5 h-5" />
           </div>
           <div>
-            <p className="text-xs font-medium text-stone-500">Total Acompañamientos realizados</p>
+            <p className="text-xs font-medium text-stone-500">Total Acompañamientos</p>
             <p className="text-xl font-bold text-stone-900">{stats.totalRegistros}</p>
             <p className="text-[11px] text-stone-400">{stats.completados} completados ({stats.porcentajeCompletado}%)</p>
           </div>
@@ -353,7 +372,25 @@ export const GestionBajosIndicadores: React.FC<GestionBajosIndicadoresProps> = (
             <p className="text-[11px] text-stone-400">Poscosecha / Facilitadores</p>
           </div>
         </div>
+
+        {/* Card 4: Cumplimiento Evaluaciones Formador */}
+        <TarjetaCumplimientoFormador
+          data={consolidadoPriorizado}
+          semanaSeleccionada={semanaFiltro}
+          bajosIndicadores={bajosIndicadores}
+          matriculas={matriculas}
+          compact={true}
+        />
       </div>
+
+      {/* Tarjeta Destacada: Cumplimiento de Evaluaciones del Formador */}
+      <TarjetaCumplimientoFormador
+        data={consolidadoPriorizado}
+        semanaSeleccionada={semanaFiltro}
+        bajosIndicadores={bajosIndicadores}
+        matriculas={matriculas}
+        compact={false}
+      />
 
       {/* Row with Charts 1 and 2 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

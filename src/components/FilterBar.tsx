@@ -76,6 +76,34 @@ export const FilterBar: React.FC<FilterBarProps> = ({
   // Collapsed by default so on mobile it looks compressed like in the screenshot
   const [isCollapsed, setIsCollapsed] = useState<boolean>(true);
 
+  // Deduplicar operarios/matrículas por código único para evitar claves duplicadas de React y opciones repetidas
+  const matriculasUnicas = React.useMemo(() => {
+    const map = new Map<string, PersonaMatricula>();
+    (matriculasDisponibles || []).forEach((m) => {
+      const code = (m.codigo || '').toString().trim();
+      if (code && !map.has(code)) {
+        map.set(code, {
+          ...m,
+          codigo: code,
+          nombre: (m.nombre || '').trim()
+        });
+      }
+    });
+    return Array.from(map.values()).sort((a, b) =>
+      a.codigo.localeCompare(b.codigo, undefined, { numeric: true })
+    );
+  }, [matriculasDisponibles]);
+
+  // Semanas únicas
+  const semanasUnicas = React.useMemo(() => {
+    return Array.from(new Set((semanasDisponibles || []).filter(Boolean)));
+  }, [semanasDisponibles]);
+
+  // Áreas únicas
+  const areasUnicas = React.useMemo(() => {
+    return Array.from(new Set((areasMatriculaDisponibles || []).filter(Boolean)));
+  }, [areasMatriculaDisponibles]);
+
   // Active filters count calculation
   const isLaborFiltered =
     laboresSeleccionadas.length > 0 &&
@@ -261,7 +289,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
                     className="w-full bg-white hover:bg-stone-50 border border-stone-200 text-stone-800 text-xs font-medium rounded-lg px-2.5 py-2 focus:ring-2 focus:ring-[#0a2958]/30 focus:border-[#0a2958] focus:outline-none shadow-2xs"
                   >
                     <option value="TODAS">Todas las semanas</option>
-                    {semanasDisponibles.map((sem) => (
+                    {semanasUnicas.map((sem) => (
                       <option key={sem} value={sem}>
                         Semana {sem}
                       </option>
@@ -286,9 +314,9 @@ export const FilterBar: React.FC<FilterBarProps> = ({
                       <option value="CON_MATRICULA">Con Matrícula Registrada</option>
                       <option value="SIN_MATRICULA">Sin Matrícula Registrada</option>
                     </optgroup>
-                    {matriculasDisponibles.length > 0 && (
+                    {matriculasUnicas.length > 0 && (
                       <optgroup label="Operarios Registrados">
-                        {matriculasDisponibles.map((m) => (
+                        {matriculasUnicas.map((m) => (
                           <option key={m.codigo} value={m.codigo}>
                             {m.codigo} - {m.nombre}
                           </option>
@@ -311,7 +339,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
                     className="w-full bg-white hover:bg-stone-50 border border-stone-200 text-stone-800 text-xs font-medium rounded-lg px-2.5 py-2 focus:ring-2 focus:ring-[#0a2958]/30 focus:border-[#0a2958] focus:outline-none shadow-2xs"
                   >
                     <option value="TODAS">Todas las áreas</option>
-                    {areasMatriculaDisponibles.map((area) => (
+                    {areasUnicas.map((area) => (
                       <option key={area} value={area}>
                         {area}
                       </option>
