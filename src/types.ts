@@ -101,6 +101,12 @@ export interface RegistroBajoIndicador {
   indicadorOrigen?: string;
   estadoAcompanamiento?: string;
   fecha?: string;
+  razon?: string;
+  compromiso?: string;
+  observaciones?: string;
+  supervisor?: string;
+  bloque?: string;
+  calificacion?: number;
 }
 
 export interface SheetsDataResponse {
@@ -125,6 +131,10 @@ export interface OperarioCumplimientoDetalle {
   porcentaje: number;
   rendimientoCount: number;
   calidadCount: number;
+  detallesAcompanamiento?: RegistroBajoIndicador[];
+  motivoBajoIndicador?: string;
+  tipoBajoIndicador?: string;
+  fechaUltimoAcompanamiento?: string;
 }
 
 export interface ResumenCumplimientoFormador {
@@ -138,6 +148,7 @@ export interface ResumenCumplimientoFormador {
   acompanamientosEjecutados: number;
   estado: 'Sobresaliente' | 'En meta' | 'Por reforzar';
   operarios: OperarioCumplimientoDetalle[];
+  acompanamientosDetalle?: RegistroBajoIndicador[];
 }
 
 export interface MetricasCumplimientoGlobal {

@@ -23,7 +23,10 @@ import {
   PersonaMatricula,
   ResumenCumplimientoFormador
 } from '../types';
-import { calcularMetricasCumplimientoFormador } from '../utils/cumplimientoFormador';
+import {
+  calcularMetricasCumplimientoFormador,
+  calcularMetricasAcompanamientoBajosFormador
+} from '../utils/cumplimientoFormador';
 
 interface TarjetaCumplimientoFormadorProps {
   data: ConsolidadoPriorizacion[];
@@ -32,6 +35,7 @@ interface TarjetaCumplimientoFormadorProps {
   matriculas?: PersonaMatricula[];
   compact?: boolean;
   className?: string;
+  modo?: 'evaluaciones' | 'acompanamientos_bajos';
 }
 
 export const TarjetaCumplimientoFormador: React.FC<TarjetaCumplimientoFormadorProps> = ({
@@ -40,7 +44,8 @@ export const TarjetaCumplimientoFormador: React.FC<TarjetaCumplimientoFormadorPr
   bajosIndicadores = [],
   matriculas = [],
   compact = true,
-  className = ''
+  className = '',
+  modo = 'evaluaciones'
 }) => {
   const [modalAbierto, setModalAbierto] = useState<boolean>(false);
   const [formadorExpandido, setFormadorExpandido] = useState<string | null>(null);
@@ -48,15 +53,25 @@ export const TarjetaCumplimientoFormador: React.FC<TarjetaCumplimientoFormadorPr
   const [estadoFiltro, setEstadoFiltro] = useState<string>('TODOS');
   const [copiado, setCopiado] = useState<boolean>(false);
 
-  // Calcular métricas completas
+  const esModoBajos = modo === 'acompanamientos_bajos';
+
+  // Calcular métricas completas según el modo
   const metricas = useMemo(() => {
+    if (esModoBajos) {
+      return calcularMetricasAcompanamientoBajosFormador(
+        data,
+        semanaSeleccionada,
+        bajosIndicadores,
+        matriculas
+      );
+    }
     return calcularMetricasCumplimientoFormador(
       data,
       semanaSeleccionada,
       bajosIndicadores,
       matriculas
     );
-  }, [data, semanaSeleccionada, bajosIndicadores, matriculas]);
+  }, [data, semanaSeleccionada, bajosIndicadores, matriculas, esModoBajos]);
 
   // Filtrar desglose en el modal
   const formadoresFiltrados = useMemo(() => {
@@ -108,61 +123,121 @@ export const TarjetaCumplimientoFormador: React.FC<TarjetaCumplimientoFormadorPr
 
   // Exportar a Excel
   const exportarExcelCumplimiento = () => {
-    const headers = [
-      'Semana',
-      'Formador / Entrenador',
-      'Operarios Asignados',
-      'Evaluaciones Requeridas (Meta)',
-      'Evaluaciones Ejecutadas (Total)',
-      'Eval. Rendimiento',
-      'Eval. Calidad',
-      'Acompañamientos Bajos Indicadores',
-      '% Cumplimiento',
-      'Estado'
-    ];
+    const headers = esModoBajos
+      ? [
+          'Semana',
+          'Formador / Entrenador',
+          'Operarios Asignados con Bajo Indicador',
+          'Acompañamientos Indicados (Meta)',
+          'Acompañamientos Ejecutados en Bajos_Indicadores',
+          '% Cumplimiento',
+          'Estado'
+        ]
+      : [
+          'Semana',
+          'Formador / Entrenador',
+          'Operarios Asignados',
+          'Evaluaciones Requeridas (Meta)',
+          'Evaluaciones Ejecutadas (Total)',
+          'Eval. Rendimiento',
+          'Eval. Calidad',
+          'Acompañamientos Bajos Indicadores',
+          '% Cumplimiento',
+          'Estado'
+        ];
 
-    const rows = metricas.desgloseFormadores.map((f) => [
-      semanaSeleccionada || 'Todas',
-      f.formador,
-      f.operariosAtendidos,
-      f.evaluacionesRequeridas,
-      f.evaluacionesEjecutadas,
-      f.rendimientoEjecutadas,
-      f.calidadEjecutadas,
-      f.acompanamientosEjecutados,
-      `${f.porcentajeCumplimiento}%`,
-      f.estado
-    ]);
+    const rows = metricas.desgloseFormadores.map((f) =>
+      esModoBajos
+        ? [
+            semanaSeleccionada || 'Todas',
+            f.formador,
+            f.operariosAtendidos,
+            f.evaluacionesRequeridas,
+            f.evaluacionesEjecutadas,
+            `${f.porcentajeCumplimiento}%`,
+            f.estado
+          ]
+        : [
+            semanaSeleccionada || 'Todas',
+            f.formador,
+            f.operariosAtendidos,
+            f.evaluacionesRequeridas,
+            f.evaluacionesEjecutadas,
+            f.rendimientoEjecutadas,
+            f.calidadEjecutadas,
+            f.acompanamientosEjecutados,
+            `${f.porcentajeCumplimiento}%`,
+            f.estado
+          ]
+    );
 
     // Hoja 2: Detalle por Operario
-    const headersOp = [
-      'Semana',
-      'Formador',
-      'Código Operario',
-      'Nombre Operario',
-      'Labor',
-      'Evaluaciones Requeridas',
-      'Evaluaciones Ejecutadas',
-      'Eval. Rendimiento',
-      'Eval. Calidad',
-      '% Cumplimiento Operario'
-    ];
+    const headersOp = esModoBajos
+      ? [
+          'Semana',
+          'Formador',
+          'Código Operario',
+          'Nombre Operario',
+          'Labor',
+          'Motivo Bajo Indicador',
+          'Acomp. Indicados',
+          'Acomp. Ejecutados en Bajos_Indicadores',
+          'Detalle Acompañamiento Registrado',
+          'Estado'
+        ]
+      : [
+          'Semana',
+          'Formador',
+          'Código Operario',
+          'Nombre Operario',
+          'Labor',
+          'Evaluaciones Requeridas',
+          'Evaluaciones Ejecutadas',
+          'Eval. Rendimiento',
+          'Eval. Calidad',
+          '% Cumplimiento Operario'
+        ];
 
     const rowsOp: any[] = [];
     metricas.desgloseFormadores.forEach((f) => {
       f.operarios.forEach((op) => {
-        rowsOp.push([
-          semanaSeleccionada || 'Todas',
-          f.formador,
-          op.codigo,
-          op.nombre,
-          op.labor,
-          op.requeridas,
-          op.ejecutadas,
-          op.rendimientoCount,
-          op.calidadCount,
-          `${op.porcentaje}%`
-        ]);
+        if (esModoBajos) {
+          const detalleAcomp =
+            op.detallesAcompanamiento && op.detallesAcompanamiento.length > 0
+              ? op.detallesAcompanamiento
+                  .map(
+                    (d) =>
+                      `${d.fecha || ''} [${d.tipoAcompanamiento || ''}] ${d.razon || ''} ${d.compromiso || ''}`.trim()
+                  )
+                  .join(' | ')
+              : 'Sin registro en Bajos_Indicadores';
+
+          rowsOp.push([
+            semanaSeleccionada || 'Todas',
+            f.formador,
+            op.codigo,
+            op.nombre,
+            op.labor,
+            op.motivoBajoIndicador || op.tipoBajoIndicador || '-',
+            op.requeridas,
+            op.ejecutadas,
+            detalleAcomp,
+            op.ejecutadas > 0 ? 'Acompañado' : 'Pendiente'
+          ]);
+        } else {
+          rowsOp.push([
+            semanaSeleccionada || 'Todas',
+            f.formador,
+            op.codigo,
+            op.nombre,
+            op.labor,
+            op.requeridas,
+            op.ejecutadas,
+            op.rendimientoCount,
+            op.calidadCount,
+            `${op.porcentaje}%`
+          ]);
+        }
       });
     });
 
@@ -171,14 +246,11 @@ export const TarjetaCumplimientoFormador: React.FC<TarjetaCumplimientoFormadorPr
     ws1['!cols'] = [
       { wch: 12 },
       { wch: 28 },
-      { wch: 18 },
+      { wch: 22 },
       { wch: 26 },
       { wch: 26 },
       { wch: 18 },
-      { wch: 18 },
-      { wch: 30 },
-      { wch: 16 },
-      { wch: 16 }
+      { wch: 18 }
     ];
     XLSX.utils.book_append_sheet(workbook, ws1, 'Resumen Formadores');
 
@@ -190,18 +262,20 @@ export const TarjetaCumplimientoFormador: React.FC<TarjetaCumplimientoFormadorPr
         { wch: 16 },
         { wch: 32 },
         { wch: 22 },
-        { wch: 22 },
-        { wch: 22 },
+        { wch: 26 },
         { wch: 18 },
-        { wch: 18 },
-        { wch: 22 }
+        { wch: 24 },
+        { wch: 36 },
+        { wch: 16 }
       ];
       XLSX.utils.book_append_sheet(workbook, ws2, 'Detalle Operarios');
     }
 
     XLSX.writeFile(
       workbook,
-      `Cumplimiento_Evaluaciones_Formador_${semanaSeleccionada || 'General'}.xlsx`
+      esModoBajos
+        ? `Cumplimiento_Acompanamientos_Formador_${semanaSeleccionada || 'General'}.xlsx`
+        : `Cumplimiento_Evaluaciones_Formador_${semanaSeleccionada || 'General'}.xlsx`
     );
   };
 
@@ -213,12 +287,12 @@ export const TarjetaCumplimientoFormador: React.FC<TarjetaCumplimientoFormadorPr
           id="kpi-card-cumplimiento-formador"
           onClick={() => setModalAbierto(true)}
           className={`bg-white px-3.5 py-2.5 rounded-xl border border-stone-200 border-t-3 border-t-emerald-600 shadow-2xs flex flex-col justify-between cursor-pointer hover:border-emerald-500 hover:shadow-xs transition-all duration-150 group ${className}`}
-          title="Click para ver el desglose detallado de cumplimiento por formador (#AF / Día Formador)"
+          title={esModoBajos ? "Click para ver los acompañamientos indicados vs ejecutados en Bajos Indicadores por formador" : "Click para ver el desglose detallado de cumplimiento por formador"}
         >
           {/* Header */}
           <div className="flex items-center justify-between mb-0.5">
             <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 flex items-center gap-1">
-              Cumplimiento Formador
+              {esModoBajos ? 'Acompañamientos Formador' : 'Cumplimiento Formador'}
             </span>
             <div className="flex items-center gap-1">
               <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded-full border ${globalStyle.bg}`}>
@@ -235,7 +309,7 @@ export const TarjetaCumplimientoFormador: React.FC<TarjetaCumplimientoFormadorPr
                 {metricas.porcentajeCumplimiento}%
               </span>
               <span className="text-[11px] text-stone-500 font-medium">
-                {metricas.totalEjecutadas}/{metricas.totalRequeridas} evals.
+                {metricas.totalEjecutadas}/{metricas.totalRequeridas} {esModoBajos ? 'acomp.' : 'evals.'}
               </span>
             </div>
 
@@ -245,7 +319,7 @@ export const TarjetaCumplimientoFormador: React.FC<TarjetaCumplimientoFormadorPr
           </div>
 
           <div className="text-[10px] text-stone-400 truncate mt-0.5 font-sans">
-            {metricas.formadoresActivos} formadores activos
+            {esModoBajos ? 'Indicados por programa vs. Bajos Indicadores' : `${metricas.formadoresActivos} formadores activos`}
           </div>
 
           {/* Barra de progreso micro */}
@@ -267,14 +341,14 @@ export const TarjetaCumplimientoFormador: React.FC<TarjetaCumplimientoFormadorPr
               <div>
                 <div className="flex items-center gap-2">
                   <h3 className="text-base font-bold text-stone-900 font-serif">
-                    Cumplimiento de Evaluaciones del Formador
+                    {esModoBajos ? 'Cumplimiento de Acompañamientos por Formador' : 'Cumplimiento de Evaluaciones del Formador'}
                   </h3>
                   <span className={`text-xs px-2 py-0.5 rounded-full font-bold border ${globalStyle.bg}`}>
                     {metricas.estadoGlobal}
                   </span>
                 </div>
                 <p className="text-xs text-stone-500 mt-0.5">
-                  Semana {semanaSeleccionada || 'Todas'} • {metricas.formadoresActivos} Formadores activos
+                  Semana {semanaSeleccionada || 'Todas'} • {esModoBajos ? 'Acompañamientos indicados por el programa vs. Ejecutados en Bajos Indicadores' : `${metricas.formadoresActivos} Formadores activos`}
                 </p>
               </div>
             </div>
@@ -300,7 +374,7 @@ export const TarjetaCumplimientoFormador: React.FC<TarjetaCumplimientoFormadorPr
                 <span className={`text-2xl font-bold font-serif ${globalStyle.text}`}>
                   {metricas.porcentajeCumplimiento}%
                 </span>
-                <span className="text-xs text-stone-500 font-medium">de la meta</span>
+                <span className="text-xs text-stone-500 font-medium">{esModoBajos ? 'ejecutado' : 'de la meta'}</span>
               </div>
               <div className="w-full bg-stone-200 rounded-full h-1.5 mt-2 overflow-hidden">
                 <div
@@ -312,31 +386,31 @@ export const TarjetaCumplimientoFormador: React.FC<TarjetaCumplimientoFormadorPr
 
             <div className="bg-stone-50 rounded-lg p-3 border border-stone-200/70">
               <span className="text-[11px] font-medium text-stone-500 block uppercase tracking-wider">
-                Evaluaciones Ejecutadas
+                {esModoBajos ? 'Acompañamientos Ejecutados' : 'Evaluaciones Ejecutadas'}
               </span>
               <div className="flex items-baseline gap-2 mt-1">
                 <span className="text-2xl font-bold font-serif text-stone-900">
                   {metricas.totalEjecutadas}
                 </span>
-                <span className="text-xs text-stone-500 font-medium">realizadas</span>
+                <span className="text-xs text-stone-500 font-medium">realizados</span>
               </div>
               <span className="text-[11px] text-stone-400 mt-1 block">
-                Solo Formadores (Excluye Supervisores)
+                {esModoBajos ? 'Registrados en Bajos Indicadores' : 'Solo Formadores (Excluye Supervisores)'}
               </span>
             </div>
 
             <div className="bg-stone-50 rounded-lg p-3 border border-stone-200/70">
               <span className="text-[11px] font-medium text-stone-500 block uppercase tracking-wider">
-                Evaluaciones Requeridas
+                {esModoBajos ? 'Acompañamientos Indicados' : 'Evaluaciones Requeridas'}
               </span>
               <div className="flex items-baseline gap-2 mt-1">
                 <span className="text-2xl font-bold font-serif text-stone-900">
                   {metricas.totalRequeridas}
                 </span>
-                <span className="text-xs text-stone-500 font-medium">estimadas</span>
+                <span className="text-xs text-stone-500 font-medium">por programa</span>
               </div>
               <span className="text-[11px] text-stone-400 mt-1 block">
-                Solo matriz #AF/Día Formador
+                {esModoBajos ? 'Operarios con Bajo Indicador' : 'Solo matriz #AF/Día Formador'}
               </span>
             </div>
 
@@ -351,7 +425,7 @@ export const TarjetaCumplimientoFormador: React.FC<TarjetaCumplimientoFormadorPr
                 <span className="text-xs text-stone-500 font-medium">entrenadores</span>
               </div>
               <span className="text-[11px] text-stone-400 mt-1 block">
-                {metricas.operariosCubiertos} operarios asignados
+                {metricas.operariosCubiertos} {esModoBajos ? 'operarios atendidos' : 'operarios asignados'}
               </span>
             </div>
           </div>
@@ -378,10 +452,14 @@ export const TarjetaCumplimientoFormador: React.FC<TarjetaCumplimientoFormadorPr
                 </div>
                 <div>
                   <h3 className="text-base sm:text-lg font-bold font-serif flex items-center gap-2">
-                    Cumplimiento de Evaluaciones Ejecutadas por Formador
+                    {esModoBajos
+                      ? 'Cumplimiento de Acompañamientos por Formador (Entrenador)'
+                      : 'Cumplimiento de Evaluaciones Ejecutadas por Formador'}
                   </h3>
                   <p className="text-xs text-stone-200">
-                    Semana {semanaSeleccionada || 'Todas'}
+                    {esModoBajos
+                      ? `Semana ${semanaSeleccionada || 'Todas'} • Acompañamientos indicados por programa vs. Ejecutados en Bajos_Indicadores`
+                      : `Semana ${semanaSeleccionada || 'Todas'}`}
                   </p>
                 </div>
               </div>
@@ -417,29 +495,43 @@ export const TarjetaCumplimientoFormador: React.FC<TarjetaCumplimientoFormadorPr
                 </div>
 
                 <div>
-                  <span className="text-[11px] font-bold text-stone-500 uppercase">Evaluaciones Ejecutadas</span>
+                  <span className="text-[11px] font-bold text-stone-500 uppercase">
+                    {esModoBajos ? 'Acompañamientos Ejecutados' : 'Evaluaciones Ejecutadas'}
+                  </span>
                   <div className="flex items-baseline gap-1 mt-0.5">
                     <span className="text-2xl font-bold font-serif text-stone-900">
                       {metricas.totalEjecutadas}
                     </span>
-                    <span className="text-[10px] text-stone-500">evaluaciones</span>
+                    <span className="text-[10px] text-stone-500">
+                      {esModoBajos ? 'acompañamientos' : 'evaluaciones'}
+                    </span>
                   </div>
-                  <span className="text-[11px] text-stone-400 mt-1 block">Formador (Sin Supervisores)</span>
+                  <span className="text-[11px] text-stone-400 mt-1 block">
+                    {esModoBajos ? 'En tabla Bajos_Indicadores' : 'Formador (Sin Supervisores)'}
+                  </span>
                 </div>
 
                 <div>
-                  <span className="text-[11px] font-bold text-stone-500 uppercase">Meta Requerida</span>
+                  <span className="text-[11px] font-bold text-stone-500 uppercase">
+                    {esModoBajos ? 'Acompañamientos Indicados' : 'Meta Requerida'}
+                  </span>
                   <div className="flex items-baseline gap-1 mt-0.5">
                     <span className="text-2xl font-bold font-serif text-stone-900">
                       {metricas.totalRequeridas}
                     </span>
-                    <span className="text-[10px] text-stone-500">evaluaciones</span>
+                    <span className="text-[10px] text-stone-500">
+                      {esModoBajos ? 'indicados' : 'evaluaciones'}
+                    </span>
                   </div>
-                  <span className="text-[11px] text-stone-400 mt-1 block">Solo #AF/Día Formador</span>
+                  <span className="text-[11px] text-stone-400 mt-1 block">
+                    {esModoBajos ? 'Operarios con Bajo Indicador' : 'Solo #AF/Día Formador'}
+                  </span>
                 </div>
 
                 <div>
-                  <span className="text-[11px] font-bold text-stone-500 uppercase">Formadores / Cobertura</span>
+                  <span className="text-[11px] font-bold text-stone-500 uppercase">
+                    {esModoBajos ? 'Formadores / Entrenadores' : 'Formadores / Cobertura'}
+                  </span>
                   <div className="flex items-baseline gap-1 mt-0.5">
                     <span className="text-2xl font-bold font-serif text-emerald-700">
                       {metricas.formadoresActivos}
@@ -447,7 +539,7 @@ export const TarjetaCumplimientoFormador: React.FC<TarjetaCumplimientoFormadorPr
                     <span className="text-[10px] text-stone-500">formadores</span>
                   </div>
                   <span className="text-[11px] text-stone-400 mt-1 block">
-                    {metricas.operariosCubiertos} operarios cubiertos
+                    {metricas.operariosCubiertos} {esModoBajos ? 'operarios atendidos' : 'operarios cubiertos'}
                   </span>
                 </div>
               </div>
@@ -535,7 +627,21 @@ export const TarjetaCumplimientoFormador: React.FC<TarjetaCumplimientoFormadorPr
                                 </span>
                               </div>
                               <p className="text-xs text-stone-500">
-                                {formador.operariosAtendidos} operarios a cargo • {formador.rendimientoEjecutadas} Rend. • {formador.calidadEjecutadas} Cal. {formador.acompanamientosEjecutados > 0 && `• ${formador.acompanamientosEjecutados} Acomp.`}
+                                {formador.operariosAtendidos} operarios {esModoBajos ? 'con bajo indicador' : 'a cargo'} •{' '}
+                                {esModoBajos ? (
+                                  <>
+                                    <span className="font-semibold text-emerald-700">
+                                      {formador.evaluacionesEjecutadas} ejecutados
+                                    </span>{' '}
+                                    en Bajos_Indicadores de {formador.evaluacionesRequeridas} indicados
+                                  </>
+                                ) : (
+                                  <>
+                                    {formador.rendimientoEjecutadas} Rend. • {formador.calidadEjecutadas} Cal.{' '}
+                                    {formador.acompanamientosEjecutados > 0 &&
+                                      `• ${formador.acompanamientosEjecutados} Acomp.`}
+                                  </>
+                                )}
                               </p>
                             </div>
                           </div>
@@ -547,7 +653,8 @@ export const TarjetaCumplimientoFormador: React.FC<TarjetaCumplimientoFormadorPr
                                   {formador.porcentajeCumplimiento}%
                                 </span>
                                 <span className="text-xs text-stone-500 font-medium">
-                                  ({formador.evaluacionesEjecutadas}/{formador.evaluacionesRequeridas} eval.)
+                                  ({formador.evaluacionesEjecutadas}/{formador.evaluacionesRequeridas}{' '}
+                                  {esModoBajos ? 'acomp.' : 'eval.'})
                                 </span>
                               </div>
                               <div className="w-36 bg-stone-100 rounded-full h-1.5 mt-1 overflow-hidden">
@@ -574,67 +681,157 @@ export const TarjetaCumplimientoFormador: React.FC<TarjetaCumplimientoFormadorPr
                           </div>
                         </div>
 
-                        {/* Operarios Evaluados por este Formador (Desplegable) */}
+                        {/* Operarios del Formador (Desplegable) */}
                         {estaExpandido && (
                           <div className="bg-stone-50/70 border-t border-stone-200 p-4">
                             <h5 className="text-[11px] font-bold text-stone-600 uppercase tracking-wider mb-2 flex items-center justify-between">
-                              <span>Operarios Evaluados y Nivel de Cumplimiento</span>
+                              <span>
+                                {esModoBajos
+                                  ? 'Operarios con Bajo Indicador y Acompañamientos Ejecutados'
+                                  : 'Operarios Evaluados y Nivel de Cumplimiento'}
+                              </span>
                               <span className="text-[10px] text-stone-400 font-normal">
                                 {formador.operarios.length} registros
                               </span>
                             </h5>
 
                             <div className="overflow-x-auto">
-                              <table className="w-full text-left text-xs border border-stone-200 rounded-lg overflow-hidden bg-white">
-                                <thead className="bg-stone-100/70 text-stone-600 text-[10px] uppercase font-bold border-b border-stone-200">
-                                  <tr>
-                                    <th className="py-2 px-3">Código</th>
-                                    <th className="py-2 px-3">Operario</th>
-                                    <th className="py-2 px-3">Labor</th>
-                                    <th className="py-2 px-3 text-center">Requeridas</th>
-                                    <th className="py-2 px-3 text-center">Ejecutadas</th>
-                                    <th className="py-2 px-3 text-center">Rend / Cal</th>
-                                    <th className="py-2 px-3 text-right">% Cumplimiento</th>
-                                  </tr>
-                                </thead>
-                                <tbody className="divide-y divide-stone-100">
-                                  {formador.operarios.map((op, opIdx) => {
-                                    const opPct = op.porcentaje;
-                                    const opColor =
-                                      opPct >= 90
-                                        ? 'text-emerald-700'
-                                        : opPct >= 80
-                                        ? 'text-amber-700'
-                                        : 'text-rose-700';
+                              {esModoBajos ? (
+                                <table className="w-full text-left text-xs border border-stone-200 rounded-lg overflow-hidden bg-white">
+                                  <thead className="bg-stone-100/70 text-stone-600 text-[10px] uppercase font-bold border-b border-stone-200">
+                                    <tr>
+                                      <th className="py-2 px-3">Código</th>
+                                      <th className="py-2 px-3">Operario</th>
+                                      <th className="py-2 px-3">Labor</th>
+                                      <th className="py-2 px-3">Motivo Bajo Indicador</th>
+                                      <th className="py-2 px-3 text-center">Acomp. Ejecutados</th>
+                                      <th className="py-2 px-3">Acompañamiento en Bajos_Indicadores</th>
+                                      <th className="py-2 px-3 text-right">Estado</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody className="divide-y divide-stone-100">
+                                    {formador.operarios.map((op, opIdx) => {
+                                      const estaAcompanado = op.ejecutadas > 0;
+                                      return (
+                                        <tr
+                                          key={`${op.codigo || ''}-${op.nombre || ''}-${opIdx}`}
+                                          className="hover:bg-stone-50/50"
+                                        >
+                                          <td className="py-2 px-3 font-mono text-stone-600">
+                                            {op.codigo || '-'}
+                                          </td>
+                                          <td className="py-2 px-3 font-medium text-stone-900">
+                                            {op.nombre}
+                                          </td>
+                                          <td className="py-2 px-3 text-stone-600">
+                                            {op.labor}
+                                          </td>
+                                          <td className="py-2 px-3">
+                                            <span className="inline-block px-2 py-0.5 rounded text-[11px] font-medium bg-amber-50 text-amber-800 border border-amber-200">
+                                              {op.motivoBajoIndicador || op.tipoBajoIndicador || 'Bajo Indicador'}
+                                            </span>
+                                          </td>
+                                          <td className="py-2 px-3 text-center font-bold text-stone-900">
+                                            {op.ejecutadas}
+                                          </td>
+                                          <td className="py-2 px-3 text-stone-600 text-[11px]">
+                                            {op.detallesAcompanamiento && op.detallesAcompanamiento.length > 0 ? (
+                                              <div className="space-y-1">
+                                                {op.detallesAcompanamiento.map((det, dIdx) => (
+                                                  <div
+                                                    key={dIdx}
+                                                    className="flex flex-wrap items-center gap-1.5"
+                                                  >
+                                                    <span className="px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 font-semibold text-[10px]">
+                                                      {det.fecha || 'Fecha N/D'}: {det.tipoAcompanamiento || 'Acompañamiento'}
+                                                    </span>
+                                                    {det.compromiso && (
+                                                      <span className="text-stone-500 italic">
+                                                        "{det.compromiso}"
+                                                      </span>
+                                                    )}
+                                                  </div>
+                                                ))}
+                                              </div>
+                                            ) : (
+                                              <span className="text-stone-400 italic">
+                                                Pendiente de registro en Bajos_Indicadores
+                                              </span>
+                                            )}
+                                          </td>
+                                          <td className="py-2 px-3 text-right">
+                                            {estaAcompanado ? (
+                                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                                                <CheckCircle2 className="w-3 h-3" />
+                                                Acompañado
+                                              </span>
+                                            ) : (
+                                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800">
+                                                <AlertTriangle className="w-3 h-3" />
+                                                Pendiente
+                                              </span>
+                                            )}
+                                          </td>
+                                        </tr>
+                                      );
+                                    })}
+                                  </tbody>
+                                </table>
+                              ) : (
+                                <table className="w-full text-left text-xs border border-stone-200 rounded-lg overflow-hidden bg-white">
+                                  <thead className="bg-stone-100/70 text-stone-600 text-[10px] uppercase font-bold border-b border-stone-200">
+                                    <tr>
+                                      <th className="py-2 px-3">Código</th>
+                                      <th className="py-2 px-3">Operario</th>
+                                      <th className="py-2 px-3">Labor</th>
+                                      <th className="py-2 px-3 text-center">Requeridas</th>
+                                      <th className="py-2 px-3 text-center">Ejecutadas</th>
+                                      <th className="py-2 px-3 text-center">Rend / Cal</th>
+                                      <th className="py-2 px-3 text-right">% Cumplimiento</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody className="divide-y divide-stone-100">
+                                    {formador.operarios.map((op, opIdx) => {
+                                      const opPct = op.porcentaje;
+                                      const opColor =
+                                        opPct >= 90
+                                          ? 'text-emerald-700'
+                                          : opPct >= 80
+                                          ? 'text-amber-700'
+                                          : 'text-rose-700';
 
-                                    return (
-                                      <tr key={`${op.codigo || ''}-${op.nombre || ''}-${op.labor || ''}-${opIdx}`} className="hover:bg-stone-50/50">
-                                        <td className="py-2 px-3 font-mono text-stone-600">
-                                          {op.codigo || '-'}
-                                        </td>
-                                        <td className="py-2 px-3 font-medium text-stone-900">
-                                          {op.nombre}
-                                        </td>
-                                        <td className="py-2 px-3 text-stone-600">
-                                          {op.labor}
-                                        </td>
-                                        <td className="py-2 px-3 text-center text-stone-700 font-semibold">
-                                          {op.requeridas}
-                                        </td>
-                                        <td className="py-2 px-3 text-center text-stone-900 font-bold">
-                                          {op.ejecutadas}
-                                        </td>
-                                        <td className="py-2 px-3 text-center text-stone-500 text-[11px]">
-                                          {op.rendimientoCount}R / {op.calidadCount}C
-                                        </td>
-                                        <td className={`py-2 px-3 text-right font-bold ${opColor}`}>
-                                          {opPct}%
-                                        </td>
-                                      </tr>
-                                    );
-                                  })}
-                                </tbody>
-                              </table>
+                                      return (
+                                        <tr
+                                          key={`${op.codigo || ''}-${op.nombre || ''}-${op.labor || ''}-${opIdx}`}
+                                          className="hover:bg-stone-50/50"
+                                        >
+                                          <td className="py-2 px-3 font-mono text-stone-600">
+                                            {op.codigo || '-'}
+                                          </td>
+                                          <td className="py-2 px-3 font-medium text-stone-900">
+                                            {op.nombre}
+                                          </td>
+                                          <td className="py-2 px-3 text-stone-600">
+                                            {op.labor}
+                                          </td>
+                                          <td className="py-2 px-3 text-center text-stone-700 font-semibold">
+                                            {op.requeridas}
+                                          </td>
+                                          <td className="py-2 px-3 text-center text-stone-900 font-bold">
+                                            {op.ejecutadas}
+                                          </td>
+                                          <td className="py-2 px-3 text-center text-stone-500 text-[11px]">
+                                            {op.rendimientoCount}R / {op.calidadCount}C
+                                          </td>
+                                          <td className={`py-2 px-3 text-right font-bold ${opColor}`}>
+                                            {opPct}%
+                                          </td>
+                                        </tr>
+                                      );
+                                    })}
+                                  </tbody>
+                                </table>
+                              )}
                             </div>
                           </div>
                         )}
@@ -648,7 +845,9 @@ export const TarjetaCumplimientoFormador: React.FC<TarjetaCumplimientoFormadorPr
             {/* Modal Footer */}
             <div className="bg-stone-50 px-6 py-3.5 border-t border-stone-200 flex items-center justify-between text-xs text-stone-500">
               <span>
-                Cálculo automatizado con base en matriz #AF/Día Formador y evaluaciones registradas.
+                {esModoBajos
+                  ? 'Acompañamientos indicados por el programa vs. ejecutados registrados en la tabla Bajos_Indicadores por Formador (Entrenador). Excluye supervisores.'
+                  : 'Cálculo automatizado con base en matriz #AF/Día Formador y evaluaciones registradas.'}
               </span>
 
               <button

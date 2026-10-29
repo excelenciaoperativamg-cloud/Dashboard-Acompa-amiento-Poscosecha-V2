@@ -373,23 +373,25 @@ export const GestionBajosIndicadores: React.FC<GestionBajosIndicadoresProps> = (
           </div>
         </div>
 
-        {/* Card 4: Cumplimiento Evaluaciones Formador */}
+        {/* Card 4: Cumplimiento Acompañamientos Formador */}
         <TarjetaCumplimientoFormador
           data={consolidadoPriorizado}
           semanaSeleccionada={semanaFiltro}
           bajosIndicadores={bajosIndicadores}
           matriculas={matriculas}
           compact={true}
+          modo="acompanamientos_bajos"
         />
       </div>
 
-      {/* Tarjeta Destacada: Cumplimiento de Evaluaciones del Formador */}
+      {/* Tarjeta Destacada: Cumplimiento de Acompañamientos del Formador (Bajos Indicadores) */}
       <TarjetaCumplimientoFormador
         data={consolidadoPriorizado}
         semanaSeleccionada={semanaFiltro}
         bajosIndicadores={bajosIndicadores}
         matriculas={matriculas}
         compact={false}
+        modo="acompanamientos_bajos"
       />
 
       {/* Row with Charts 1 and 2 */}

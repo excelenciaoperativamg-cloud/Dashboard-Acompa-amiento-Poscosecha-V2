@@ -373,3 +373,269 @@ export function calcularMetricasCumplimientoFormador(
     totalAfDiaFormadorDiario: totalAfDiaDiarioSum
   };
 }
+
+/**
+ * Calcula el cumplimiento de acompañamientos de los Formadores (Entrenadores)
+ * contrastando:
+ * - Acompañamientos que el programa indicó (operarios asignados que requirieron acompañamiento por bajo indicador o #AF/Día en la priorización)
+ * - VS Acompañamientos efectivamente ejecutados y relacionados en la tabla Bajos_Indicadores.
+ * Excluye totalmente a supervisores (SUP. RUTA, SUP. PROC).
+ */
+export function calcularMetricasAcompanamientoBajosFormador(
+  data: ConsolidadoPriorizacion[],
+  semanaSeleccionada: string,
+  bajosIndicadores: RegistroBajoIndicador[] = [],
+  matriculas: PersonaMatricula[] = []
+): MetricasCumplimientoGlobal {
+  // 1. Filtrar registros de Bajos Indicadores: EXCLUYENDO SUP. RUTA Y SUP. PROC
+  const bajosValidos = bajosIndicadores.filter((b) => {
+    if (esSupervisorExcluido(b.formador) || esSupervisorExcluido(b.tipoAcompanamiento)) {
+      return false;
+    }
+    return true;
+  });
+
+  const bajosSemana = bajosValidos.filter((b) => {
+    if (semanaSeleccionada === 'TODAS') return true;
+    return b.semana === semanaSeleccionada || b.semana?.includes(semanaSeleccionada.replace('2026-', ''));
+  });
+
+  // 2. Determinar semanas y semana previa de estimación
+  const todasLasSemanas = Array.from(
+    new Set([
+      ...data.map((d) => d.semana).filter(Boolean),
+      ...bajosIndicadores.map((b) => b.semana).filter(Boolean)
+    ])
+  ).sort().reverse();
+
+  let semanaEstimadaOrigen = semanaSeleccionada;
+  let itemsParaMeta = data;
+
+  if (semanaSeleccionada !== 'TODAS') {
+    const semanaPrevia = identificarSemanaPrevia(semanaSeleccionada, todasLasSemanas);
+    if (semanaPrevia) {
+      const itemsSemanaPrevia = data.filter((d) => d.semana === semanaPrevia);
+      if (itemsSemanaPrevia.length > 0) {
+        itemsParaMeta = itemsSemanaPrevia;
+        semanaEstimadaOrigen = semanaPrevia;
+      } else {
+        itemsParaMeta = data.filter((d) => d.semana === semanaSeleccionada);
+      }
+    } else {
+      itemsParaMeta = data.filter((d) => d.semana === semanaSeleccionada);
+    }
+  }
+
+  // 3. Estructura de acumuladores por formador
+  interface FormadorAcompAcc {
+    formador: string;
+    acompanamientosIndicados: number;
+    acompanamientosEjecutados: number;
+    operariosMap: Map<string, OperarioCumplimientoDetalle>;
+    detallesAcompanamientos: RegistroBajoIndicador[];
+  }
+
+  const accumulators = new Map<string, FormadorAcompAcc>();
+
+  const getOrCreateAcc = (name: string): FormadorAcompAcc | null => {
+    const canonicalName = normalizarNombreFormador(name);
+    if (!canonicalName || esSupervisorExcluido(canonicalName)) return null;
+    if (!accumulators.has(canonicalName)) {
+      accumulators.set(canonicalName, {
+        formador: canonicalName,
+        acompanamientosIndicados: 0,
+        acompanamientosEjecutados: 0,
+        operariosMap: new Map(),
+        detallesAcompanamientos: []
+      });
+    }
+    return accumulators.get(canonicalName)!;
+  };
+
+  // 4. Procesar acompañamientos EJECUTADOS en Bajos_Indicadores
+  bajosSemana.forEach((reg) => {
+    if (!reg.formador) return;
+    const acc = getOrCreateAcc(reg.formador);
+    if (!acc) return;
+
+    acc.acompanamientosEjecutados += 1;
+    acc.detallesAcompanamientos.push(reg);
+
+    const opKey = reg.codigo || reg.nombre;
+    if (!acc.operariosMap.has(opKey)) {
+      acc.operariosMap.set(opKey, {
+        codigo: reg.codigo,
+        nombre: reg.nombre,
+        labor: reg.labor || 'Poscosecha',
+        ejecutadas: 1,
+        requeridas: 1,
+        porcentaje: 100,
+        rendimientoCount: reg.tipoAcompanamiento?.toLowerCase().includes('rend') ? 1 : 0,
+        calidadCount: reg.tipoAcompanamiento?.toLowerCase().includes('cal') ? 1 : 0,
+        detallesAcompanamiento: [reg],
+        motivoBajoIndicador: reg.razon || reg.tipoAcompanamiento,
+        tipoBajoIndicador: reg.tipoAcompanamiento,
+        fechaUltimoAcompanamiento: reg.fecha
+      });
+    } else {
+      const op = acc.operariosMap.get(opKey)!;
+      op.ejecutadas += 1;
+      if (reg.tipoAcompanamiento?.toLowerCase().includes('rend')) op.rendimientoCount += 1;
+      if (reg.tipoAcompanamiento?.toLowerCase().includes('cal')) op.calidadCount += 1;
+      if (!op.detallesAcompanamiento) op.detallesAcompanamiento = [];
+      op.detallesAcompanamiento.push(reg);
+      if (reg.fecha) op.fechaUltimoAcompanamiento = reg.fecha;
+    }
+  });
+
+  // 3b. Mapeo rápido de matrículas para identificar formador asignado
+  const matriculaFormadorMap = new Map<string, string>();
+  matriculas.forEach((m) => {
+    if (m.codigo && m.formador) {
+      matriculaFormadorMap.set(m.codigo.toLowerCase().trim(), m.formador);
+    }
+    if (m.nombre && m.formador) {
+      matriculaFormadorMap.set(m.nombre.toLowerCase().trim(), m.formador);
+    }
+  });
+
+  // 5. Identificar operarios con BAJO INDICADOR según el programa (en itemsParaMeta)
+  // Operarios que tuvieron baja calidad (<90% o 'En desarrollo'/'En observación')
+  // o bajo rendimiento (<meta o 'En desarrollo'/'En observación')
+  itemsParaMeta.forEach((item) => {
+    const esBajoRendimiento =
+      item.resultadoRendimiento === 'En desarrollo' ||
+      item.resultadoRendimiento === 'En observación' ||
+      (item.metaRendimiento > 0 && item.rendimiento < item.metaRendimiento);
+
+    const esBajaCalidad =
+      item.resultadoCalidad === 'En desarrollo' ||
+      item.resultadoCalidad === 'En observación' ||
+      (item.porcentajeProceso !== undefined && item.porcentajeProceso < 90);
+
+    const requiereAcomp = esBajoRendimiento || esBajaCalidad || item.afDiaFormador >= 2;
+
+    if (!requiereAcomp) return;
+
+    // Buscar el formador del operario
+    let formador = '';
+    const entRend = item.todasLasEvaluacionesRendimiento?.find((r) => r.entrenador && !esSupervisorExcluido(r.entrenador))?.entrenador;
+    const entCal = item.todasLasEvaluacionesCalidad?.find((c) => c.entrenador && !esSupervisorExcluido(c.entrenador))?.entrenador;
+    formador = entRend || entCal || item.matriculaInfo?.formador || '';
+
+    if (!formador && item.codigo) {
+      const mat = matriculaFormadorMap.get(item.codigo.toLowerCase().trim()) || (item.nombre ? matriculaFormadorMap.get(item.nombre.toLowerCase().trim()) : undefined);
+      if (mat && !esSupervisorExcluido(mat)) {
+        formador = mat;
+      }
+    }
+
+    if (!formador) return;
+    const acc = getOrCreateAcc(formador);
+    if (!acc) return;
+
+    const opKey = item.codigo || item.nombre;
+    const motivo = esBajoRendimiento && esBajaCalidad
+      ? 'Bajo Rendimiento y Baja Calidad'
+      : esBajoRendimiento
+      ? `Bajo Rendimiento (${item.rendimiento}/${item.metaRendimiento})`
+      : `Baja Calidad (${item.porcentajeProceso}%)`;
+
+    const tipoAcomp = esBajoRendimiento && !esBajaCalidad ? 'Rendimiento' : esBajaCalidad && !esBajoRendimiento ? 'Calidad' : 'Gestión Bajos Indicadores';
+
+    if (!acc.operariosMap.has(opKey)) {
+      acc.operariosMap.set(opKey, {
+        codigo: item.codigo,
+        nombre: item.nombre,
+        labor: item.labor,
+        ejecutadas: 0,
+        requeridas: 1,
+        porcentaje: 0,
+        rendimientoCount: 0,
+        calidadCount: 0,
+        motivoBajoIndicador: motivo,
+        tipoBajoIndicador: tipoAcomp,
+        detallesAcompanamiento: []
+      });
+    } else {
+      const op = acc.operariosMap.get(opKey)!;
+      if (!op.motivoBajoIndicador) op.motivoBajoIndicador = motivo;
+      if (!op.tipoBajoIndicador) op.tipoBajoIndicador = tipoAcomp;
+    }
+  });
+
+  // 6. Calcular metas requeridas / indicadas para cada formador
+  accumulators.forEach((acc) => {
+    let indicadosFormador = 0;
+    acc.operariosMap.forEach((op) => {
+      // Requeridas es al menos 1 por operario con bajo indicador, o si se ejecutaron más, se iguala
+      op.requeridas = Math.max(1, op.ejecutadas);
+      op.porcentaje = op.requeridas > 0 ? Math.round((op.ejecutadas / op.requeridas) * 100) : 100;
+      indicadosFormador += op.requeridas;
+    });
+
+    acc.acompanamientosIndicados = indicadosFormador;
+  });
+
+  // 7. Desglose final de formadores
+  const desgloseFormadores: ResumenCumplimientoFormador[] = Array.from(accumulators.values())
+    .filter((acc) => acc.acompanamientosEjecutados > 0 || acc.acompanamientosIndicados > 0)
+    .map((acc) => {
+      const req = acc.acompanamientosIndicados;
+      const ejec = acc.acompanamientosEjecutados;
+      const pct = req > 0 ? Math.round((ejec / req) * 100) : 100;
+
+      let estado: 'Sobresaliente' | 'En meta' | 'Por reforzar' = 'Por reforzar';
+      if (pct >= 90) {
+        estado = 'Sobresaliente';
+      } else if (pct >= 80) {
+        estado = 'En meta';
+      }
+
+      const rendEjec = acc.detallesAcompanamientos.filter((d) => d.tipoAcompanamiento?.toLowerCase().includes('rend')).length;
+      const calEjec = acc.detallesAcompanamientos.filter((d) => d.tipoAcompanamiento?.toLowerCase().includes('cal')).length;
+
+      return {
+        formador: acc.formador,
+        evaluacionesRequeridas: req,
+        evaluacionesEjecutadas: ejec,
+        porcentajeCumplimiento: pct,
+        operariosAtendidos: acc.operariosMap.size,
+        rendimientoEjecutadas: rendEjec,
+        calidadEjecutadas: calEjec,
+        acompanamientosEjecutados: ejec,
+        estado,
+        operarios: Array.from(acc.operariosMap.values()).sort((a, b) => b.ejecutadas - a.ejecutadas || a.nombre.localeCompare(b.nombre)),
+        acompanamientosDetalle: acc.detallesAcompanamientos
+      };
+    })
+    .sort((a, b) => b.porcentajeCumplimiento - a.porcentajeCumplimiento || b.evaluacionesEjecutadas - a.evaluacionesEjecutadas);
+
+  const totalRequeridas = desgloseFormadores.reduce((sum, f) => sum + f.evaluacionesRequeridas, 0);
+  const totalEjecutadas = desgloseFormadores.reduce((sum, f) => sum + f.evaluacionesEjecutadas, 0);
+  const porcentajeCumplimiento = totalRequeridas > 0 ? Math.round((totalEjecutadas / totalRequeridas) * 100) : 100;
+
+  const operariosCubiertosSet = new Set<string>();
+  desgloseFormadores.forEach((f) => {
+    f.operarios.forEach((op) => operariosCubiertosSet.add(op.codigo || op.nombre));
+  });
+
+  let estadoGlobal: 'Sobresaliente' | 'En meta' | 'Por reforzar' = 'Por reforzar';
+  if (porcentajeCumplimiento >= 90) {
+    estadoGlobal = 'Sobresaliente';
+  } else if (porcentajeCumplimiento >= 80) {
+    estadoGlobal = 'En meta';
+  }
+
+  return {
+    totalEjecutadas,
+    totalRequeridas,
+    porcentajeCumplimiento,
+    formadoresActivos: desgloseFormadores.length,
+    operariosCubiertos: operariosCubiertosSet.size,
+    estadoGlobal,
+    desgloseFormadores,
+    semanaEstimadaOrigen,
+    semanaEvaluada: semanaSeleccionada
+  };
+}
