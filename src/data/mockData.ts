@@ -1,4 +1,4 @@
-import { EvaluacionRendimiento, EvaluacionCalidad, PersonaMatricula, RegistroBajoIndicador } from '../types';
+import { EvaluacionRendimiento, EvaluacionCalidad, PersonaMatricula, RegistroBajoIndicador, RegistroDestreza } from '../types';
 
 export const MOCK_MATRICULAS: PersonaMatricula[] = [
   { codigo: '1001', nombre: 'María Camila Rodríguez', cargo: 'Operario Poscosecha', area: 'Clasificación', formador: 'Diana Gabriela Pedraza' },
@@ -620,4 +620,105 @@ export const MOCK_BAJOS_INDICADORES: RegistroBajoIndicador[] = [
     fecha: '23/10/2026'
   }
 ];
+
+export const MOCK_DESTREZAS: RegistroDestreza[] = [
+  {
+    id: 'des-1',
+    idDestrezas: '70600cc6',
+    llave: '2026-45217641',
+    ano: 2026,
+    fecha: '4/11/2026',
+    semana: '2026-45',
+    proceso: 'Banda 2',
+    entrenador: 'GOMEZ MADERO NIDIA ROSA',
+    codigo: '217641',
+    nombre: 'ORTIZ HOYOS KIARA INES',
+    nuevoAntiguo: 'En ruta',
+    fechaIngreso: '3/11/2026',
+    dia: 1,
+    labor: 'Armado Ramos',
+    registro: 'Puesto de Destreza o simulado',
+    puestoDestreza: 'Concentración al conteo',
+    tiempoPorIntento: 60,
+    nivelDificultad: 1,
+    porcentajeCumplimiento: 100,
+    siguienteNivel: 'Siguiente nivel',
+    puestoAprobado: 'No',
+    intento: 2
+  },
+  {
+    id: 'des-2',
+    idDestrezas: '5dd23b1c',
+    llave: '2026-45217641',
+    ano: 2026,
+    fecha: '4/11/2026',
+    semana: '2026-45',
+    proceso: 'Banda 2',
+    entrenador: 'GOMEZ MADERO NIDIA ROSA',
+    codigo: '217641',
+    nombre: 'ORTIZ HOYOS KIARA INES',
+    nuevoAntiguo: 'En ruta',
+    fechaIngreso: '3/11/2026',
+    dia: 1,
+    labor: 'Armado Ramos',
+    registro: 'Puesto de Destreza o simulado',
+    puestoDestreza: 'Speed stack',
+    criteriosIncumplidos: '1',
+    tiempoPorIntento: 8,
+    nivelDificultad: 1,
+    porcentajeCumplimiento: 67,
+    siguienteNivel: 'Sigue intentando',
+    puestoAprobado: 'No',
+    intento: 5
+  },
+  {
+    id: 'des-3',
+    idDestrezas: 'd51e4f9b',
+    llave: '2026-45217641',
+    ano: 2026,
+    fecha: '4/11/2026',
+    semana: '2026-45',
+    proceso: 'Banda 2',
+    entrenador: 'GOMEZ MADERO NIDIA ROSA',
+    codigo: '217641',
+    nombre: 'ORTIZ HOYOS KIARA INES',
+    nuevoAntiguo: 'En ruta',
+    fechaIngreso: '3/11/2026',
+    dia: 1,
+    labor: 'Armado Ramos',
+    registro: 'Puesto de Destreza o simulado',
+    puestoDestreza: 'Pin Board',
+    tiempoPorIntento: 14,
+    nivelDificultad: 1,
+    porcentajeCumplimiento: 100,
+    siguienteNivel: 'Siguiente nivel',
+    puestoAprobado: 'Sí',
+    intento: 11
+  },
+  {
+    id: 'des-4',
+    idDestrezas: '91568939',
+    llave: '2026-46217884',
+    ano: 2026,
+    fecha: '9/11/2026',
+    semana: '2026-46',
+    proceso: 'Banda 1',
+    entrenador: 'GOMEZ MADERO NIDIA ROSA',
+    codigo: '217884',
+    nombre: 'RODRIGUEZ RODRIGUEZ YURI TATIANA',
+    nuevoAntiguo: 'En ruta',
+    fechaIngreso: '9/11/2026',
+    dia: 1,
+    labor: 'Armado Ramos',
+    registro: 'Puesto de Destreza o simulado',
+    puestoDestreza: 'Puesto simulado de Clasificación',
+    tiempoPorIntento: 300,
+    nivelDificultad: 1,
+    porcentajeCumplimiento: 100,
+    siguienteNivel: 'Siguiente nivel',
+    puestoAprobado: 'Sí',
+    intento: 3
+  }
+];
+
 

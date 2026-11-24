@@ -4,6 +4,7 @@ import {
   EvaluacionCalidad,
   PersonaMatricula,
   RegistroBajoIndicador,
+  RegistroDestreza,
   SheetsDataResponse
 } from '../types';
 import { consolidarPriorizacion } from './calculations';
@@ -11,7 +12,8 @@ import {
   MOCK_RENDIMIENTO,
   MOCK_CONSOLIDADO_CALIDAD,
   MOCK_MATRICULAS,
-  MOCK_BAJOS_INDICADORES
+  MOCK_BAJOS_INDICADORES,
+  MOCK_DESTREZAS
 } from '../data/mockData';
 
 export function cleanHeader(header: string): string {
@@ -406,18 +408,132 @@ export function mapBajosIndicadoresRows(rows: any[]): RegistroBajoIndicador[] {
   }).filter(item => item.nombre !== '' || item.codigo !== '');
 }
 
+export function mapDestrezasRows(rows: any[]): RegistroDestreza[] {
+  return rows.map((row, idx) => {
+    const keys = Object.keys(row);
+    const getValExactOrPartial = (exactNames: string[], partialNames?: string[]) => {
+      const cleanKeys = keys.map(k => ({ original: k, clean: cleanHeader(k) }));
+      for (const ex of exactNames) {
+        const match = cleanKeys.find(ck => ck.clean === ex);
+        if (match && row[match.original] !== undefined) return String(row[match.original]).trim();
+      }
+      if (partialNames && partialNames.length > 0) {
+        for (const p of partialNames) {
+          const match = cleanKeys.find(ck => ck.clean.includes(p));
+          if (match && row[match.original] !== undefined) return String(row[match.original]).trim();
+        }
+      }
+      return '';
+    };
+
+    const idDestrezas = getValExactOrPartial(['id_destrezas', 'id destrezas', 'iddestrezas']);
+    const llave = getValExactOrPartial(['llave', 'key']);
+    const rawAno = getValExactOrPartial(['ano', 'año', 'year']);
+    const fecha = getValExactOrPartial(['fecha', 'date']);
+    const rawSemana = getValExactOrPartial(['semana', 'sem', 'week']);
+    const proceso = getValExactOrPartial(['proceso', 'proc', 'linea']);
+    const entrenador = getValExactOrPartial(['entrenador', 'formador', 'instructor']) || 'Sin Entrenador';
+    const codigo = getValExactOrPartial(['codigo', 'código', 'matricula', 'documento', 'cedula']);
+    const nombre = getValExactOrPartial(['nombre', 'operario', 'persona', 'empleado']);
+    const nuevoAntiguo = getValExactOrPartial(['nuevo/antiguo', 'nuevo_antiguo', 'nuevo o antiguo']);
+    const fechaIngreso = getValExactOrPartial(['fecha de ingreso', 'fecha_ingreso', 'fecha ingreso']);
+    const rawDia = getValExactOrPartial(['dia', 'día']);
+    const labor = getValExactOrPartial(['labor', 'tarea', 'actividad']) || 'Poscosecha';
+    const registro = getValExactOrPartial(['registro']);
+    const puestoDestreza = getValExactOrPartial(
+      ['puesto de destreza o simulado', 'puesto destreza', 'puesto'],
+      ['puesto de destreza', 'destreza']
+    ) || 'No especificado';
+    const manoDerecha = getValExactOrPartial(['mano derecha']);
+    const manoIzquierda = getValExactOrPartial(['mano izquierda']);
+    const ambasManos = getValExactOrPartial(['ambas manos']);
+    const ensamble = getValExactOrPartial(['ensamble']);
+    const criteriosIncumplidos = getValExactOrPartial(
+      ['criterios incumplidos de aprobacion o de calidad', 'criterios incumplidos'],
+      ['criterios incumplidos']
+    );
+    const rawTiempo = getValExactOrPartial(['tiempo por intento', 'tiempo'], ['tiempo']);
+    const rawNivel = getValExactOrPartial(['nivel de dificultad', 'nivel'], ['nivel']);
+    const rawPorc = getValExactOrPartial(['% cumplimiento', 'porcentaje cumplimiento', 'cumplimiento'], ['cumplimiento']);
+    const siguienteNivel = getValExactOrPartial(['siguiente nivel'], ['siguiente nivel']);
+    const rawAprobado = getValExactOrPartial(['puesto aprobado', 'aprobado'], ['aprobado']);
+    const rawIntento = getValExactOrPartial(['intento'], ['intento']);
+
+    let semana = rawSemana;
+    if (semana && !semana.includes('-')) {
+      const numSem = parseInt(semana, 10);
+      if (!isNaN(numSem)) {
+        const yr = parseNumber(rawAno, 2026);
+        semana = `${yr}-${numSem.toString().padStart(2, '0')}`;
+      }
+    }
+
+    const ano = parseNumber(rawAno, parseInt(semana.split('-')[0], 10) || 2026);
+    const tiempoPorIntento = parseNumber(rawTiempo, 0);
+
+    let porcentajeCumplimiento = parseNumber(rawPorc, 0);
+    if (rawPorc && !rawPorc.includes('%') && porcentajeCumplimiento > 0 && porcentajeCumplimiento <= 1) {
+      porcentajeCumplimiento = Math.round(porcentajeCumplimiento * 100);
+    }
+
+    const normAprobadoLower = rawAprobado.toLowerCase();
+    const puestoAprobado =
+      normAprobadoLower === 'si' || normAprobadoLower === 'sí' || normAprobadoLower === 'true' || normAprobadoLower === '1'
+        ? 'Sí'
+        : normAprobadoLower === 'no' || normAprobadoLower === 'false' || normAprobadoLower === '0'
+        ? 'No'
+        : rawAprobado || 'No';
+
+    const diaVal = rawDia !== '' ? (isNaN(Number(rawDia)) ? rawDia : Number(rawDia)) : undefined;
+    const nivelVal = rawNivel !== '' ? (isNaN(Number(rawNivel)) ? rawNivel : Number(rawNivel)) : undefined;
+    const intentoVal = rawIntento !== '' ? parseNumber(rawIntento, 1) : undefined;
+
+    return {
+      id: idDestrezas || `des-${idx + 1}`,
+      idDestrezas: idDestrezas || undefined,
+      llave: llave || undefined,
+      ano,
+      fecha: fecha || undefined,
+      semana: semana || `${ano}-01`,
+      proceso: proceso || undefined,
+      entrenador,
+      codigo,
+      nombre,
+      nuevoAntiguo: nuevoAntiguo || undefined,
+      fechaIngreso: fechaIngreso || undefined,
+      dia: diaVal,
+      labor,
+      registro: registro || undefined,
+      puestoDestreza,
+      manoDerecha: manoDerecha || undefined,
+      manoIzquierda: manoIzquierda || undefined,
+      ambasManos: ambasManos || undefined,
+      ensamble: ensamble || undefined,
+      criteriosIncumplidos: criteriosIncumplidos || undefined,
+      tiempoPorIntento,
+      nivelDificultad: nivelVal,
+      porcentajeCumplimiento,
+      siguienteNivel: siguienteNivel || undefined,
+      puestoAprobado,
+      intento: intentoVal
+    };
+  }).filter(item => item.nombre !== '' || item.codigo !== '');
+}
+
 export async function fetchSheetsDataFromGoogle(spreadsheetId: string): Promise<SheetsDataResponse> {
-  const [rawRendimiento, rawConsolidado, rawMatriculas, rawBajosIndicadores] = await Promise.all([
+  const [rawRendimiento, rawConsolidado, rawMatriculas, rawBajosIndicadores, rawDestrezas] = await Promise.all([
     fetchSheetCSV(spreadsheetId, 'Rendimiento').catch(() => null),
     fetchSheetCSV(spreadsheetId, 'Consolidado').catch(() => null),
     fetchSheetCSV(spreadsheetId, 'Matrículas').catch(() => fetchSheetCSV(spreadsheetId, 'Matriculas').catch(() => null)),
-    fetchSheetCSV(spreadsheetId, 'Bajos_Indicadores').catch(() => fetchSheetCSV(spreadsheetId, 'Bajos Indicadores').catch(() => null))
+    fetchSheetCSV(spreadsheetId, 'Bajos_Indicadores').catch(() => fetchSheetCSV(spreadsheetId, 'Bajos Indicadores').catch(() => null)),
+    fetchSheetCSV(spreadsheetId, 'Destrezas').catch(() => fetchSheetCSV(spreadsheetId, 'destrezas').catch(() => null))
   ]);
 
   let rendimientos: EvaluacionRendimiento[] = [];
   let consolidados: EvaluacionCalidad[] = [];
   let matriculas: PersonaMatricula[] = [];
   let bajosIndicadores: RegistroBajoIndicador[] = [];
+  let destrezas: RegistroDestreza[] = [];
   let source: 'google_sheets_live' | 'mock_default' = 'google_sheets_live';
 
   if (rawRendimiento && rawRendimiento.length > 0) {
@@ -432,6 +548,9 @@ export async function fetchSheetsDataFromGoogle(spreadsheetId: string): Promise<
   if (rawBajosIndicadores && rawBajosIndicadores.length > 0) {
     bajosIndicadores = mapBajosIndicadoresRows(rawBajosIndicadores);
   }
+  if (rawDestrezas && rawDestrezas.length > 0) {
+    destrezas = mapDestrezasRows(rawDestrezas);
+  }
 
   if (rendimientos.length === 0 && consolidados.length === 0) {
     source = 'mock_default';
@@ -439,6 +558,7 @@ export async function fetchSheetsDataFromGoogle(spreadsheetId: string): Promise<
     consolidados = MOCK_CONSOLIDADO_CALIDAD;
     matriculas = MOCK_MATRICULAS;
     bajosIndicadores = MOCK_BAJOS_INDICADORES;
+    destrezas = MOCK_DESTREZAS;
   } else {
     if (matriculas.length === 0) matriculas = MOCK_MATRICULAS;
     if (bajosIndicadores.length === 0) bajosIndicadores = MOCK_BAJOS_INDICADORES;
@@ -458,6 +578,7 @@ export async function fetchSheetsDataFromGoogle(spreadsheetId: string): Promise<
     consolidadoRaw: consolidados,
     matriculasRaw: matriculas,
     bajosIndicadoresRaw: bajosIndicadores,
+    destrezasRaw: destrezas,
     consolidadoPriorizado,
     semanasDisponibles,
     source,

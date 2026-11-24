@@ -6,14 +6,17 @@ import {
   EvaluacionCalidad,
   PersonaMatricula,
   RegistroBajoIndicador,
+  RegistroDestreza,
   SheetsDataResponse
 } from './src/types';
 import { consolidarPriorizacion } from './src/utils/calculations';
+import { mapDestrezasRows } from './src/utils/sheets';
 import {
   MOCK_RENDIMIENTO,
   MOCK_CONSOLIDADO_CALIDAD,
   MOCK_MATRICULAS,
-  MOCK_BAJOS_INDICADORES
+  MOCK_BAJOS_INDICADORES,
+  MOCK_DESTREZAS
 } from './src/data/mockData';
 
 const app = express();
@@ -425,17 +428,19 @@ app.get(['/api/sheets/data', '/sheets/data'], (async (req, res) => {
 
   try {
     // Intentar leer las pestañas desde Google Sheets
-    const [rawRendimiento, rawConsolidado, rawMatriculas, rawBajosIndicadores] = await Promise.all([
+    const [rawRendimiento, rawConsolidado, rawMatriculas, rawBajosIndicadores, rawDestrezas] = await Promise.all([
       fetchSheetCSV(spreadsheetId, 'Rendimiento').catch(() => null),
       fetchSheetCSV(spreadsheetId, 'Consolidado').catch(() => null),
       fetchSheetCSV(spreadsheetId, 'Matrículas').catch(() => fetchSheetCSV(spreadsheetId, 'Matriculas').catch(() => null)),
-      fetchSheetCSV(spreadsheetId, 'Bajos_Indicadores').catch(() => fetchSheetCSV(spreadsheetId, 'Bajos Indicadores').catch(() => null))
+      fetchSheetCSV(spreadsheetId, 'Bajos_Indicadores').catch(() => fetchSheetCSV(spreadsheetId, 'Bajos Indicadores').catch(() => null)),
+      fetchSheetCSV(spreadsheetId, 'Destrezas').catch(() => fetchSheetCSV(spreadsheetId, 'destrezas').catch(() => null))
     ]);
 
     let rendimientos: EvaluacionRendimiento[] = [];
     let consolidados: EvaluacionCalidad[] = [];
     let matriculas: PersonaMatricula[] = [];
     let bajosIndicadores: RegistroBajoIndicador[] = [];
+    let destrezas: RegistroDestreza[] = [];
     let source: 'google_sheets_live' | 'mock_default' = 'google_sheets_live';
 
     if (rawRendimiento && rawRendimiento.length > 0) {
@@ -450,6 +455,9 @@ app.get(['/api/sheets/data', '/sheets/data'], (async (req, res) => {
     if (rawBajosIndicadores && rawBajosIndicadores.length > 0) {
       bajosIndicadores = mapBajosIndicadoresRows(rawBajosIndicadores);
     }
+    if (rawDestrezas && rawDestrezas.length > 0) {
+      destrezas = mapDestrezasRows(rawDestrezas);
+    }
 
     // Si la lectura en vivo falló o no devolvió filas suficientes, usamos mock predeterminado
     if (rendimientos.length === 0 && consolidados.length === 0) {
@@ -458,6 +466,7 @@ app.get(['/api/sheets/data', '/sheets/data'], (async (req, res) => {
       consolidados = MOCK_CONSOLIDADO_CALIDAD;
       matriculas = MOCK_MATRICULAS;
       bajosIndicadores = MOCK_BAJOS_INDICADORES;
+      destrezas = MOCK_DESTREZAS;
     } else {
       // Completar matrículas y bajos indicadores si estaban vacíos
       if (matriculas.length === 0) {
@@ -486,6 +495,7 @@ app.get(['/api/sheets/data', '/sheets/data'], (async (req, res) => {
       consolidadoRaw: consolidados,
       matriculasRaw: matriculas,
       bajosIndicadoresRaw: bajosIndicadores,
+      destrezasRaw: destrezas,
       consolidadoPriorizado
     };
 
@@ -508,6 +518,7 @@ app.get(['/api/sheets/data', '/sheets/data'], (async (req, res) => {
       consolidadoRaw: MOCK_CONSOLIDADO_CALIDAD,
       matriculasRaw: MOCK_MATRICULAS,
       bajosIndicadoresRaw: MOCK_BAJOS_INDICADORES,
+      destrezasRaw: MOCK_DESTREZAS,
       consolidadoPriorizado: fallbackConsolidado,
       error: `No se pudo conectar a Google Sheets en tiempo real: ${err.message}. Mostrando datos locales de respaldo.`
     });

@@ -338,52 +338,6 @@ export const GestionBajosIndicadores: React.FC<GestionBajosIndicadoresProps> = (
         </div>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3.5">
-        <div className="bg-white border border-stone-200 rounded-xl p-4 flex items-center gap-3 shadow-xs">
-          <div className="p-3 bg-purple-50 text-purple-700 rounded-xl">
-            <CheckCircle2 className="w-5 h-5" />
-          </div>
-          <div>
-            <p className="text-xs font-medium text-stone-500">Total Acompañamientos</p>
-            <p className="text-xl font-bold text-stone-900">{stats.totalRegistros}</p>
-            <p className="text-[11px] text-stone-400">{stats.completados} completados ({stats.porcentajeCompletado}%)</p>
-          </div>
-        </div>
-
-        <div className="bg-white border border-stone-200 rounded-xl p-4 flex items-center gap-3 shadow-xs">
-          <div className="p-3 bg-blue-50 text-blue-700 rounded-xl">
-            <Users className="w-5 h-5" />
-          </div>
-          <div>
-            <p className="text-xs font-medium text-stone-500">Operarios Acompañados</p>
-            <p className="text-xl font-bold text-stone-900">{stats.personasUnicas}</p>
-            <p className="text-[11px] text-stone-400">Operarios en registro</p>
-          </div>
-        </div>
-
-        <div className="bg-white border border-stone-200 rounded-xl p-4 flex items-center gap-3 shadow-xs">
-          <div className="p-3 bg-amber-50 text-amber-700 rounded-xl">
-            <UserCheck className="w-5 h-5" />
-          </div>
-          <div>
-            <p className="text-xs font-medium text-stone-500">Entrenadores Evaluando</p>
-            <p className="text-xl font-bold text-stone-900">{stats.formadoresUnicos}</p>
-            <p className="text-[11px] text-stone-400">Poscosecha / Facilitadores</p>
-          </div>
-        </div>
-
-        {/* Card 4: Cumplimiento Acompañamientos Formador */}
-        <TarjetaCumplimientoFormador
-          data={consolidadoPriorizado}
-          semanaSeleccionada={semanaFiltro}
-          bajosIndicadores={bajosIndicadores}
-          matriculas={matriculas}
-          compact={true}
-          modo="acompanamientos_bajos"
-        />
-      </div>
-
       {/* Tarjeta Destacada: Cumplimiento de Acompañamientos del Formador (Bajos Indicadores) */}
       <TarjetaCumplimientoFormador
         data={consolidadoPriorizado}

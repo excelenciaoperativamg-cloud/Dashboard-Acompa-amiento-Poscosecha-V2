@@ -109,6 +109,36 @@ export interface RegistroBajoIndicador {
   calificacion?: number;
 }
 
+export interface RegistroDestreza {
+  id: string;
+  idDestrezas?: string;
+  llave?: string;
+  ano: number;
+  fecha?: string;
+  semana: string;
+  proceso?: string;
+  entrenador: string;
+  codigo: string;
+  nombre: string;
+  nuevoAntiguo?: string;
+  fechaIngreso?: string;
+  dia?: number | string;
+  labor: string;
+  registro?: string;
+  puestoDestreza: string;
+  manoDerecha?: string;
+  manoIzquierda?: string;
+  ambasManos?: string;
+  ensamble?: string;
+  criteriosIncumplidos?: string;
+  tiempoPorIntento: number;
+  nivelDificultad?: string | number;
+  porcentajeCumplimiento: number;
+  siguienteNivel?: string;
+  puestoAprobado: string;
+  intento?: number;
+}
+
 export interface SheetsDataResponse {
   sheetId: string;
   source: 'google_sheets_live' | 'mock_default' | 'user_csv';
@@ -118,6 +148,7 @@ export interface SheetsDataResponse {
   consolidadoRaw: EvaluacionCalidad[];
   matriculasRaw: PersonaMatricula[];
   bajosIndicadoresRaw?: RegistroBajoIndicador[];
+  destrezasRaw?: RegistroDestreza[];
   consolidadoPriorizado: ConsolidadoPriorizacion[];
   error?: string;
 }

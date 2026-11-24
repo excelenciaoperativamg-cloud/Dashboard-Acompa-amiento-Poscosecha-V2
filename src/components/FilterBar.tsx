@@ -13,7 +13,8 @@ import {
   ChevronDown,
   ChevronUp,
   RotateCcw,
-  Layers
+  Layers,
+  Target
 } from 'lucide-react';
 import { LaborMultiSelect } from './LaborMultiSelect';
 import { ProcesoMultiSelect } from './ProcesoMultiSelect';
@@ -46,8 +47,8 @@ interface FilterBarProps {
   searchQuery: string;
   onSearchChange: (q: string) => void;
   
-  activeTab: 'tabla' | 'matriz' | 'bajos_indicadores' | 'curva_aprendizaje';
-  onTabChange: (tab: 'tabla' | 'matriz' | 'bajos_indicadores' | 'curva_aprendizaje') => void;
+  activeTab: 'tabla' | 'matriz' | 'bajos_indicadores' | 'destrezas' | 'curva_aprendizaje';
+  onTabChange: (tab: 'tabla' | 'matriz' | 'bajos_indicadores' | 'destrezas' | 'curva_aprendizaje') => void;
 }
 
 export const FilterBar: React.FC<FilterBarProps> = ({
@@ -164,6 +165,19 @@ export const FilterBar: React.FC<FilterBarProps> = ({
         >
           <UserCheck className="w-4 h-4" />
           Gestión Bajos Indicadores
+        </button>
+
+        <button
+          id="tab-destrezas"
+          onClick={() => onTabChange('destrezas')}
+          className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+            activeTab === 'destrezas'
+              ? 'bg-[#0a2958] text-white shadow-xs'
+              : 'bg-stone-100 text-stone-600 hover:bg-stone-200 hover:text-stone-900'
+          }`}
+        >
+          <Target className="w-4 h-4" />
+          Destrezas
         </button>
 
         <button

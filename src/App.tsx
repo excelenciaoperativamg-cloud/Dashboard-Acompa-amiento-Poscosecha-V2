@@ -14,8 +14,9 @@ import { FilterBar } from './components/FilterBar';
 import { ConsolidadoTable } from './components/ConsolidadoTable';
 import { DecisionMatrixSection } from './components/DecisionMatrixSection';
 import { GestionBajosIndicadores } from './components/GestionBajosIndicadores';
+import { DestrezasView } from './components/DestrezasView';
 import { CurvaAprendizaje } from './components/CurvaAprendizaje';
-import { MOCK_RENDIMIENTO, MOCK_CONSOLIDADO_CALIDAD, MOCK_MATRICULAS, MOCK_BAJOS_INDICADORES } from './data/mockData';
+import { MOCK_RENDIMIENTO, MOCK_CONSOLIDADO_CALIDAD, MOCK_MATRICULAS, MOCK_BAJOS_INDICADORES, MOCK_DESTREZAS } from './data/mockData';
 import { AlertTriangle, RefreshCw, Sparkles, BookOpen } from 'lucide-react';
 
 export default function App() {
@@ -41,7 +42,7 @@ export default function App() {
   const [matriculaSeleccionada, setMatriculaSeleccionada] = useState<string>('TODAS');
   const [areaMatriculaSeleccionada, setAreaMatriculaSeleccionada] = useState<string>('TODAS');
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [activeTab, setActiveTab] = useState<'tabla' | 'matriz' | 'bajos_indicadores' | 'curva_aprendizaje'>('tabla');
+  const [activeTab, setActiveTab] = useState<'tabla' | 'matriz' | 'bajos_indicadores' | 'destrezas' | 'curva_aprendizaje'>('tabla');
 
   const fetchSheetsData = async (targetId: string) => {
     setIsRefreshing(true);
@@ -112,6 +113,16 @@ export default function App() {
       return sheetsData.bajosIndicadoresRaw;
     }
     return MOCK_BAJOS_INDICADORES;
+  }, [sheetsData]);
+
+  const activeDestrezasRaw = useMemo(() => {
+    if (sheetsData?.destrezasRaw && sheetsData.destrezasRaw.length > 0) {
+      return sheetsData.destrezasRaw;
+    }
+    if (sheetsData?.source === 'mock_default') {
+      return MOCK_DESTREZAS;
+    }
+    return sheetsData?.destrezasRaw || [];
   }, [sheetsData]);
 
   // Consolidado priorizado resultante
@@ -392,6 +403,11 @@ export default function App() {
                 matriculas={activeMatriculasRaw}
                 semanaSeleccionada={semanaSeleccionada}
               />
+            )}
+
+            {/* Tab 3: Destrezas */}
+            {activeTab === 'destrezas' && (
+              <DestrezasView destrezas={activeDestrezasRaw} />
             )}
 
             {/* Tab 3: Curva de Aprendizaje */}
